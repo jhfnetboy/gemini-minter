@@ -1,0 +1,177 @@
+:root {
+    --primary-color: #007bff;
+    --primary-hover-color: #0056b3;
+    --background-color: #f4f7f9;
+    --card-background-color: #ffffff;
+    --text-color: #333;
+    --header-background: #2c3e50;
+    --header-text-color: #ecf0f1;
+    --border-color: #e0e0e0;
+}
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+.App {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.App-header {
+    background-color: var(--header-background);
+    padding: 15px 30px;
+    color: var(--header-text-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.App-header h1 {
+    margin: 0;
+    font-size: 1.6em;
+}
+
+.App-header p {
+    margin: 0;
+    font-size: 0.9em;
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 8px 12px;
+    border-radius: 15px;
+}
+
+.container {
+    display: flex;
+    flex: 1;
+    padding: 20px;
+    gap: 20px;
+}
+
+.minting-column, .display-column {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.minting-column { flex: 1; }
+.display-column { flex: 2; }
+
+.card {
+    background: var(--card-background-color);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    padding: 25px;
+    text-align: left;
+}
+
+.card h2, .card h3 {
+    margin-top: 0;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+button {
+    background-color: var(--primary-color);
+    border: none;
+    color: white;
+    padding: 12px 24px;
+    text-align: center;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 8px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+button:hover:not(:disabled) {
+    background-color: var(--primary-hover-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.message { color: #28a745; font-weight: bold; }
+.error { color: #dc3545; font-weight: bold; }
+.message, .error { text-align: center; margin-top: 15px; word-wrap: break-word; }
+
+.mint-form {
+    display: flex;
+    gap: 10px;
+}
+
+.mint-form input[type="number"] {
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    font-size: 16px;
+    flex-grow: 1;
+}
+
+.mint-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.nft-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.nft-card {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px;
+    background-color: #fdfdfd;
+    transition: all 0.3s ease;
+}
+
+.nft-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+}
+
+.sbt-card {
+    background-color: #fff5f5;
+    border-color: #ffc0cb;
+}
+
+.nft-image-placeholder {
+    width: 100%;
+    height: 140px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9em;
+    color: #adb5bd;
+    font-weight: bold;
+}
+
+.empty-text {
+    color: #6c757d;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+    }
+    .minting-column, .display-column {
+        width: 100%;
+    }
+}
