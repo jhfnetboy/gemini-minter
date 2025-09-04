@@ -377,9 +377,9 @@ function App() {
                 <div className="footer-content">
                     <div className="footer-section">
                         <h4>📜 Smart Contracts</h4>
-                        <p>NFT: <code>{config.addresses.nft.substring(0, 10)}...</code></p>
-                        <p>SBT: <code>{config.addresses.sbt.substring(0, 10)}...</code></p>
-                        <p>PNTs: <code>{config.addresses.pnts.substring(0, 10)}...</code></p>
+                        <p>NFT: <a href={`https://sepolia.etherscan.io/address/${config.addresses.nft}`} target="_blank" rel="noopener noreferrer"><code>{config.addresses.nft.substring(0, 10)}...</code></a></p>
+                        <p>SBT: <a href={`https://sepolia.etherscan.io/address/${config.addresses.sbt}`} target="_blank" rel="noopener noreferrer"><code>{config.addresses.sbt.substring(0, 10)}...</code></a></p>
+                        <p>PNTs: <a href={`https://sepolia.etherscan.io/address/${config.addresses.pnts}`} target="_blank" rel="noopener noreferrer"><code>{config.addresses.pnts.substring(0, 10)}...</code></a></p>
                     </div>
                     <div className="footer-section">
                         <h4>🔗 Network</h4>
@@ -388,8 +388,8 @@ function App() {
                     </div>
                     <div className="footer-section">
                         <h4>ℹ️ Info</h4>
-                        <p>Owner: <code>{config.OWNER_ADDRESS.substring(0, 10)}...</code></p>
-                        <p>Version: 2.0</p>
+                        <p>Owner: <a href={`https://sepolia.etherscan.io/address/${config.OWNER_ADDRESS}`} target="_blank" rel="noopener noreferrer"><code>{config.OWNER_ADDRESS.substring(0, 10)}...</code></a></p>
+                        <p>Version: 2.3</p>
                     </div>
                 </div>
             </footer>
