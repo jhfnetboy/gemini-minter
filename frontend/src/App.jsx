@@ -214,16 +214,18 @@ function App() {
     return (
         <div className="App">
             <header className="App-header">
-                <h1>🚀 Gemini Minter DApp</h1>
-                <div className="header-right">
-                    {account ? (
-                        <div className="account-info">
-                            <p>Connected: <span className="address">{`${account.substring(0, 6)}...${account.substring(account.length - 4)}`}</span></p>
-                            {isOwner && <span className="owner-badge">👑 Owner</span>}
-                        </div>
-                    ) : (
-                        <button onClick={connectWallet} className="connect-btn">Connect Wallet</button>
-                    )}
+                <div>
+                    <h1>🚀 Gemini Minter DApp</h1>
+                    <div className="header-right">
+                        {account ? (
+                            <div className="account-info">
+                                <p>Connected: <span className="address">{`${account.substring(0, 6)}...${account.substring(account.length - 4)}`}</span></p>
+                                {isOwner && <span className="owner-badge">👑 Owner</span>}
+                            </div>
+                        ) : (
+                            <button onClick={connectWallet} className="connect-btn">Connect Wallet</button>
+                        )}
+                    </div>
                 </div>
             </header>
 
