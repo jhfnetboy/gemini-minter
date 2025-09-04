@@ -101,34 +101,19 @@ You will need two separate terminal windows.
 
    1     cast call 0x3e7B771d4541eC85c8137e950598Ac97553a337a
      "balanceOf(address)" OWNER_ADDRESS --rpc-url
-     https://eth-sepolia.g.alchemy.com/v2/IIY_LZOlEuy66agzhxpYexmEaHuMskl-
+     https://eth-sepolia.g.alchemy.com/v2/IIY_LZO
 
    2. 查询NFT拥有数量 (ERC721):
        * 这个命令会查询您的地址拥有的NFT数量。
 
    1     cast call 0xC9fB3Fe98442A23a0CA5884dC114989FF7b3d97a
      "balanceOf(address)" OWNER_ADDRESS --rpc-url
-     https://eth-sepolia.g.alchemy.com/v2/IIY_LZOlEuy66agzhxpYexmEaHuMskl-
-
+     https://eth-sepolia.g.alchemy.com/v2/IIY_LZO
    3. 查询某个NFT的拥有者 (ERC721):
        * 这个命令可以验证ID为 0
          的NFT是否归您所有（如果查询结果是您的地址，则验证成功）。
 
    1     cast call 0xC9fB3Fe98442A23a0CA5884dC114989FF7b3d97a
      "ownerOf(uint256)" 0 --rpc-url
-     https://eth-sepolia.g.alchemy.com/v2/IIY_LZOlEuy66agzhxpYexmEaHuMskl-
+     https://eth-sepolia.g.alchemy.com/v2/IIY_LZO
 
-
-
-
-   * MyNFT (ERC721):
-       * 地址: 0xC9fB3Fe98442A23a0CA5884dC114989FF7b3d97a
-       * 链接: https://sepolia.etherscan.io/address/0xC9fB3Fe98442A23a0CA5884dC114989FF7b3d97a
-
-   * MySBT (灵魂绑定代币):
-       * 地址: 0xBfde68c232F2248114429DDD9a7c3Adbff74bD7f
-       * 链接: https://sepolia.etherscan.io/address/0xBfde68c232F2248114429DDD9a7c3Adbff74bD7f
-
-   * PNTs (ERC20):
-       * 地址: 0x3e7B771d4541eC85c8137e950598Ac97553a337a
-       * 链接: https://sepolia.etherscan.io/address/0x3e7B771d4541eC85c8137e950598Ac97553a337a
