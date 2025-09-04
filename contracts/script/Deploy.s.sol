@@ -8,7 +8,8 @@ import "../src/PNTs.sol";
 
 contract Deploy is Script {
     function run() external returns (address, address, address) {
-        vm.startBroadcast();
+        uint256 deployerPrivateKey = vm.envUint("SEPOLIA_PRIVATE_KEY");
+        vm.startBroadcast(deployerPrivateKey);
 
         MyNFT myNFT = new MyNFT();
         MySBT mySBT = new MySBT();

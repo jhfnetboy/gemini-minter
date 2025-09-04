@@ -2,10 +2,9 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract MySBT is ERC721, ERC721Enumerable, Ownable {
+contract MySBT is ERC721, Ownable {
     uint256 private _nextTokenId;
 
     constructor() ERC721("My Soul-Bound Token", "MYSBT") Ownable(msg.sender) {}
@@ -15,33 +14,20 @@ contract MySBT is ERC721, ERC721Enumerable, Ownable {
         _safeMint(to, tokenId);
     }
 
-    // The following functions are overrides required by Solidity.
-
+    /**
+     * @dev Hook that is called before any token transfer.
+     * This override prevents tokens from being transferred between accounts.
+     * It allows minting (when `from` is the zero address) and burning (when `to` is the zero address).
+     */
     function _update(address to, uint256 tokenId, address auth)
         internal
-        override(ERC721, ERC721Enumerable)
+        override
         returns (address)
     {
         if (ownerOf(tokenId) != address(0)) {
-            revert("SBTs are not transferable.");
+            require(to == address(0), "SBTs are not transferable");
         }
         return super._update(to, tokenId, auth);
-    }
-
-    function _increaseBalance(address account, uint128 value)
-        internal
-        override(ERC721, ERC721Enumerable)
-    {
-        super._increaseBalance(account, value);
-    }
-
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC721, ERC721Enumerable)
-        returns (bool)
-    {
-        return super.supportsInterface(interfaceId);
     }
 
     function withdraw() public onlyOwner {

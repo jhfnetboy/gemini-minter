@@ -25,6 +25,7 @@ if (!alchemyRpcUrl || !serverPrivateKey || !nftContractAddress || !sbtContractAd
 // --- PROVIDER & SIGNER ---
 const provider = new ethers.JsonRpcProvider(alchemyRpcUrl);
 const wallet = new ethers.Wallet(serverPrivateKey, provider);
+console.log(`Server wallet address: ${wallet.address}`);
 
 // --- CONTRACT INSTANCES ---
 const nftContract = new ethers.Contract(nftContractAddress, nftABI, wallet);
@@ -38,15 +39,21 @@ app.use(express.json());
 // --- GENERIC MINT FUNCTION ---
 const handleMint = async (contract, mintFunction, args, res) => {
     try {
-        console.log(`Minting request received for ${contract.target}`);
-        const tx = await contract[mintFunction](...args, { gasLimit: 300000 });
-        console.log(`Transaction sent! Hash: ${tx.hash}`);
-        await tx.wait();
-        console.log(`Transaction mined! Hash: ${tx.hash}`);
-        res.status(200).json({ message: 'Minted successfully!', txHash: tx.hash });
+        console.log(`Minting request received for ${contract.target} with function ${mintFunction}`);
+        const txResponse = await contract[mintFunction](...args, { gasLimit: 300000 });
+        console.log(`Transaction sent! Hash: ${txResponse.hash}`);
+        res.status(200).json({ txHash: txResponse.hash });
     } catch (error) {
-        console.error('Error minting:', error);
-        res.status(500).json({ error: 'Failed to mint.', details: error.message });
+        console.error('--- Minting Error ---');
+        console.error(`Contract: ${contract.target}`);
+        console.error(`Function: ${mintFunction}`);
+        console.error(`Arguments: ${JSON.stringify(args)}`);
+        console.error(error);
+        console.error('--- End Minting Error ---');
+        res.status(500).json({ 
+            error: 'Failed to send minting transaction.', 
+            details: error.reason || error.message 
+        });
     }
 };
 

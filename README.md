@@ -117,3 +117,24 @@ You will need two separate terminal windows.
    1     cast call 0x7fd84232A9f47aC064D11963982161d18F9Eece0
      "ownerOf(uint256)" 0 --rpc-url
      https://eth-sepolia.g.alchemy.com/v2/IIY_LZOlEuy66agzhxpYexmEaHuMskl-
+
+
+
+
+   * MyNFT (ERC721):
+       * 地址: 0x7fd84232A9f47aC064D11963982161d18F9Eece0
+       * 链接: https://sepolia.etherscan.io/address/0x7fd84232A9f47aC064D119639821
+         61d18F9Eece0 (https://sepolia.etherscan.io/address/0x7fd84232A9f47aC064D1
+         1963982161d18F9Eece0)
+
+   * MySBT (灵魂绑定代币):
+       * 地址: 0xa32438E6Acd6BfF08A50E391b550F49B3FA0815C
+       * 链接: https://sepolia.etherscan.io/address/0xa32438E6Acd6BfF08A50E391b550
+         F49B3FA0815C (https://sepolia.etherscan.io/address/0xa32438E6Acd6BfF08A50
+         E391b550F49B3FA0815C)
+
+   * PNTs (ERC20):
+       * 地址: 0x708e373876C12baA0A8678e08e8979Bb1EfC3510
+       * 链接: https://sepolia.etherscan.io/address/0x708e373876C12baA0A8678e08e89
+         79Bb1EfC3510 (https://sepolia.etherscan.io/address/0x708e373876C12baA0A86
+         78e08e8979Bb1EfC3510)
