@@ -109,16 +109,16 @@ The app maintains real-time balances and collections for all token types, with a
 # Replace OWNER_ADDRESS with your wallet address
 
 # Check PNTs balance (ERC20)
-cast call 0x708e373876C12baA0A8678e08e8979Bb1EfC3510 "balanceOf(address)" OWNER_ADDRESS --rpc-url $RPC_URL
+cast call 0x3e7B771d4541eC85c8137e950598Ac97553a337a "balanceOf(address)" OWNER_ADDRESS --rpc-url $RPC_URL
 
 # Check NFT balance (ERC721) 
-cast call 0x7fd84232A9f47aC064D11963982161d18F9Eece0 "balanceOf(address)" OWNER_ADDRESS --rpc-url $RPC_URL
+cast call 0xC9fB3Fe98442A23a0CA5884dC114989FF7b3d97a "balanceOf(address)" OWNER_ADDRESS --rpc-url $RPC_URL
 
 # Check NFT ownership by token ID
-cast call 0x7fd84232A9f47aC064D11963982161d18F9Eece0 "ownerOf(uint256)" 0 --rpc-url $RPC_URL
+cast call 0xC9fB3Fe98442A23a0CA5884dC114989FF7b3d97a "ownerOf(uint256)" 0 --rpc-url $RPC_URL
 ```
 
 ## Current Deployed Contracts (Sepolia)
-- **MyNFT**: `0x7fd84232A9f47aC064D11963982161d18F9Eece0`
-- **MySBT**: `0xa32438E6Acd6BfF08A50E391b550F49B3FA0815C`
-- **PNTs**: `0x708e373876C12baA0A8678e08e8979Bb1EfC3510`
+- **MyNFT**: `0xC9fB3Fe98442A23a0CA5884dC114989FF7b3d97a`
+- **MySBT**: `0xBfde68c232F2248114429DDD9a7c3Adbff74bD7f`
+- **PNTs**: `0x3e7B771d4541eC85c8137e950598Ac97553a337a`

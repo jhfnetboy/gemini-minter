@@ -99,14 +99,14 @@ You will need two separate terminal windows.
    1. 查询PNTs代币余额 (ERC20):
        * 这个命令会查询您的地址拥有的PNTs代币数量（结果单位是Wei，1后面有18个0）。
 
-   1     cast call 0x708e373876C12baA0A8678e08e8979Bb1EfC3510
+   1     cast call 0x3e7B771d4541eC85c8137e950598Ac97553a337a
      "balanceOf(address)" OWNER_ADDRESS --rpc-url
      https://eth-sepolia.g.alchemy.com/v2/IIY_LZOlEuy66agzhxpYexmEaHuMskl-
 
    2. 查询NFT拥有数量 (ERC721):
        * 这个命令会查询您的地址拥有的NFT数量。
 
-   1     cast call 0x7fd84232A9f47aC064D11963982161d18F9Eece0
+   1     cast call 0xC9fB3Fe98442A23a0CA5884dC114989FF7b3d97a
      "balanceOf(address)" OWNER_ADDRESS --rpc-url
      https://eth-sepolia.g.alchemy.com/v2/IIY_LZOlEuy66agzhxpYexmEaHuMskl-
 
@@ -114,7 +114,7 @@ You will need two separate terminal windows.
        * 这个命令可以验证ID为 0
          的NFT是否归您所有（如果查询结果是您的地址，则验证成功）。
 
-   1     cast call 0x7fd84232A9f47aC064D11963982161d18F9Eece0
+   1     cast call 0xC9fB3Fe98442A23a0CA5884dC114989FF7b3d97a
      "ownerOf(uint256)" 0 --rpc-url
      https://eth-sepolia.g.alchemy.com/v2/IIY_LZOlEuy66agzhxpYexmEaHuMskl-
 
@@ -122,19 +122,13 @@ You will need two separate terminal windows.
 
 
    * MyNFT (ERC721):
-       * 地址: 0x7fd84232A9f47aC064D11963982161d18F9Eece0
-       * 链接: https://sepolia.etherscan.io/address/0x7fd84232A9f47aC064D119639821
-         61d18F9Eece0 (https://sepolia.etherscan.io/address/0x7fd84232A9f47aC064D1
-         1963982161d18F9Eece0)
+       * 地址: 0xC9fB3Fe98442A23a0CA5884dC114989FF7b3d97a
+       * 链接: https://sepolia.etherscan.io/address/0xC9fB3Fe98442A23a0CA5884dC114989FF7b3d97a
 
    * MySBT (灵魂绑定代币):
-       * 地址: 0xa32438E6Acd6BfF08A50E391b550F49B3FA0815C
-       * 链接: https://sepolia.etherscan.io/address/0xa32438E6Acd6BfF08A50E391b550
-         F49B3FA0815C (https://sepolia.etherscan.io/address/0xa32438E6Acd6BfF08A50
-         E391b550F49B3FA0815C)
+       * 地址: 0xBfde68c232F2248114429DDD9a7c3Adbff74bD7f
+       * 链接: https://sepolia.etherscan.io/address/0xBfde68c232F2248114429DDD9a7c3Adbff74bD7f
 
    * PNTs (ERC20):
-       * 地址: 0x708e373876C12baA0A8678e08e8979Bb1EfC3510
-       * 链接: https://sepolia.etherscan.io/address/0x708e373876C12baA0A8678e08e89
-         79Bb1EfC3510 (https://sepolia.etherscan.io/address/0x708e373876C12baA0A86
-         78e08e8979Bb1EfC3510)
+       * 地址: 0x3e7B771d4541eC85c8137e950598Ac97553a337a
+       * 链接: https://sepolia.etherscan.io/address/0x3e7B771d4541eC85c8137e950598Ac97553a337a

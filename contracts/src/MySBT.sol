@@ -24,9 +24,14 @@ contract MySBT is ERC721, Ownable {
         override
         returns (address)
     {
-        if (ownerOf(tokenId) != address(0)) {
-            require(to == address(0), "SBTs are not transferable");
+        address from = _ownerOf(tokenId);
+        
+        // If token exists (from != address(0)) and this is not a burn (to != address(0))
+        // then it's a transfer, which should be blocked for SBTs
+        if (from != address(0) && to != address(0)) {
+            require(false, "SBTs are not transferable");
         }
+        
         return super._update(to, tokenId, auth);
     }
 
