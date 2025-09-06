@@ -3,7 +3,10 @@ import { ethers } from 'ethers';
 import { config } from './config';
 import './App.css';
 
-const backendUrl = 'http://localhost:3001';
+// Use appropriate backend URL based on environment
+const backendUrl = window.location.hostname === 'localhost' 
+    ? 'http://localhost:3001'  // Development: use local Express backend
+    : '';  // Production: use same domain (Vercel API routes)
 
 function App() {
     const [account, setAccount] = useState(null);
@@ -47,17 +50,20 @@ function App() {
             
             console.log('Wallet connected, account:', connectedAccount);
             console.log('Is owner:', isOwnerAccount);
+            
+            // Save to localStorage for auto-reconnect
+            localStorage.setItem('walletConnected', 'true');
         } catch (err) {
             setError('Failed to connect wallet.');
             console.error(err);
         }
     };
 
-    const fetchNfts = async (type, setter, retries = 3) => {
+    const fetchNfts = async (type, setter, retries = 3, forceRefresh = false) => {
         if (!displayAddress || !provider) return;
         const address = config.addresses[type];
         const abi = config.abis[type];
-        console.log(`Fetching ${type}s from contract:`, address);
+        console.log(`Fetching ${type}s from contract:`, address, forceRefresh ? '(force refresh)' : '');
         if (!ethers.isAddress(address) || address.includes("YOUR")) return;
 
         try {
@@ -65,10 +71,10 @@ function App() {
             const balance = await contract.balanceOf(displayAddress);
             console.log(`${type} balance:`, balance.toString());
 
-            if (balance.toString() === '0' && retries > 0) {
-                console.log(`Retrying to fetch ${type}s, ${retries} retries left...`);
-                setTimeout(() => fetchNfts(type, setter, retries - 1), 2000);
-                return;
+            // Retry if we're expecting a change (forceRefresh) but haven't seen it yet
+            if (forceRefresh && retries > 0) {
+                console.log(`Force refreshing ${type}s, ${retries} retries left...`);
+                setTimeout(() => fetchNfts(type, setter, retries - 1, true), 2000);
             }
 
             // For basic ERC721 contracts without enumerable extension
@@ -93,7 +99,7 @@ function App() {
         }
     };
 
-    const fetchPntsBalance = async (retries = 3) => {
+    const fetchPntsBalance = async (retries = 3, expectedBalance = null) => {
         if (!displayAddress || !provider) return;
         const address = config.addresses.pnts;
         const abi = config.abis.pnts;
@@ -103,15 +109,17 @@ function App() {
         try {
             const contract = new ethers.Contract(address, abi, provider);
             const balance = await contract.balanceOf(displayAddress);
-            console.log('PNTs balance from contract:', balance.toString());
+            const formattedBalance = ethers.formatUnits(balance, 18);
+            console.log('PNTs balance from contract:', formattedBalance);
 
-            if (balance.toString() === '0' && retries > 0) {
-                console.log(`Retrying to fetch PNTs balance, ${retries} retries left...`);
-                setTimeout(() => fetchPntsBalance(retries - 1), 2000);
+            // If we're expecting a specific balance and haven't reached it yet, keep retrying
+            if (expectedBalance && formattedBalance === pntsBalance && retries > 0) {
+                console.log(`Balance hasn't updated yet, retrying... ${retries} retries left`);
+                setTimeout(() => fetchPntsBalance(retries - 1, expectedBalance), 2500);
                 return;
             }
 
-            setPntsBalance(ethers.formatUnits(balance, 18));
+            setPntsBalance(formattedBalance);
         } catch (err) {
             console.error('Failed to fetch PNTs balance:', err);
             setError('Failed to fetch PNTs balance. See console for details.');
@@ -135,16 +143,21 @@ function App() {
         let successMessage = '';
         let fetchFunction = null;
 
+        // Use appropriate endpoints based on environment
+        const isLocalDev = window.location.hostname === 'localhost';
+        
         if (isPNTs) {
             if (!pntsAmount || parseFloat(pntsAmount) <= 0) {
                 return setError('Please enter a valid amount.');
             }
-            endpoint = '/mintPNTs';
+            endpoint = isLocalDev ? '/mintPNTs' : '/api/mint/pnts';
             body = { userAddress: targetAddress, amount: pntsAmount };
             successMessage = `${pntsAmount} PNTs minted to ${targetAddress === account ? 'you' : targetAddress.substring(0, 6) + '...'}`;
             fetchFunction = fetchPntsBalance;
         } else {
-            endpoint = mintType === 'nft' ? '/mintNFT' : '/mintSBT';
+            endpoint = isLocalDev 
+                ? (mintType === 'nft' ? '/mintNFT' : '/mintSBT')
+                : (mintType === 'nft' ? '/api/mint/nft' : '/api/mint/sbt');
             body = { userAddress: targetAddress };
             successMessage = `${mintType.toUpperCase()} minted to ${targetAddress === account ? 'you' : targetAddress.substring(0, 6) + '...'}`;
             fetchFunction = () => fetchNfts(mintType, mintType === 'nft' ? setNfts : setSbts);
@@ -174,10 +187,36 @@ function App() {
 
             setMessage(`Success! ${successMessage}. Tx: ${txHash.substring(0,10)}...`);
             console.log('Transaction successful, preparing to refresh data...');
-            setTimeout(() => {
-                console.log('Refreshing data now.');
+            
+            // Force multiple refresh attempts to catch slow RPC updates
+            const refreshData = async () => {
+                console.log('Starting aggressive data refresh...');
+                
+                // Immediate refresh
                 fetchFunction();
-            }, 1000);
+                
+                // Additional refreshes with delays to catch slow RPC updates
+                setTimeout(() => {
+                    console.log('Refresh attempt 2...');
+                    if (isPNTs) {
+                        fetchPntsBalance(5, true);
+                    } else {
+                        fetchNfts(mintType, mintType === 'nft' ? setNfts : setSbts, 5, true);
+                    }
+                }, 2000);
+                
+                setTimeout(() => {
+                    console.log('Refresh attempt 3...');
+                    fetchFunction();
+                }, 5000);
+                
+                setTimeout(() => {
+                    console.log('Final refresh attempt...');
+                    fetchFunction();
+                }, 10000);
+            };
+            
+            refreshData();
 
         } catch (err) {
             setError(err.message);
@@ -202,12 +241,57 @@ function App() {
         setMessage('Switched back to your own balances.');
     };
 
+    // Auto-reconnect wallet on page load
+    useEffect(() => {
+        const autoConnect = async () => {
+            if (localStorage.getItem('walletConnected') === 'true' && window.ethereum) {
+                try {
+                    const web3Provider = new ethers.BrowserProvider(window.ethereum);
+                    const accounts = await web3Provider.send('eth_accounts', []);
+                    if (accounts.length > 0) {
+                        setProvider(web3Provider);
+                        const connectedAccount = accounts[0];
+                        setAccount(connectedAccount);
+                        setDisplayAddress(connectedAccount);
+                        const isOwnerAccount = connectedAccount.toLowerCase() === config.OWNER_ADDRESS.toLowerCase();
+                        setIsOwner(isOwnerAccount);
+                        console.log('Auto-reconnected wallet:', connectedAccount);
+                    }
+                } catch (err) {
+                    console.error('Auto-connect failed:', err);
+                }
+            }
+        };
+        autoConnect();
+        
+        // Listen for account changes
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length === 0) {
+                    // User disconnected wallet
+                    setAccount(null);
+                    setDisplayAddress(null);
+                    setProvider(null);
+                    localStorage.removeItem('walletConnected');
+                } else {
+                    // User switched accounts
+                    const newAccount = accounts[0];
+                    setAccount(newAccount);
+                    setDisplayAddress(newAccount);
+                    const isOwnerAccount = newAccount.toLowerCase() === config.OWNER_ADDRESS.toLowerCase();
+                    setIsOwner(isOwnerAccount);
+                    console.log('Account changed to:', newAccount);
+                }
+            });
+        }
+    }, []);
+    
     useEffect(() => {
         if (displayAddress && provider) {
             console.log('useEffect triggered, fetching data for address:', displayAddress);
-            fetchNfts('nft', setNfts);
-            fetchNfts('sbt', setSbts);
-            fetchPntsBalance();
+            fetchNfts('nft', setNfts, 3, false);
+            fetchNfts('sbt', setSbts, 3, false);
+            fetchPntsBalance(3, null);
         }
     }, [displayAddress, provider]);
 
@@ -337,6 +421,17 @@ function App() {
                     <h2 className="collection-header">
                         {displayAddress === account ? '📦 My Collection' : 
                          `📦 Collection of ${displayAddress?.substring(0, 6)}...${displayAddress?.substring(displayAddress.length - 4)}`}
+                        <button 
+                            onClick={() => {
+                                console.log('Manual refresh triggered for:', displayAddress);
+                                fetchNfts('nft', setNfts, 3, false);
+                                fetchNfts('sbt', setSbts, 3, false);
+                                fetchPntsBalance(3, null);
+                            }}
+                            style={{ marginLeft: '10px', fontSize: '0.6em' }}
+                        >
+                            🔄 Refresh
+                        </button>
                     </h2>
                     
                     <div className="card collection-card">
