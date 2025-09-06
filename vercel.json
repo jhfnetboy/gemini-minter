@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "frontend/dist"
+      }
+    },
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/dist/$1"
+    }
+  ],
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 30
+    }
+  },
+  "env": {
+    "ALCHEMY_RPC_URL": "@alchemy_rpc_url",
+    "SEPOLIA_PRIVATE_KEY": "@sepolia_private_key",
+    "NFT_CONTRACT_ADDRESS": "@nft_contract_address",
+    "SBT_CONTRACT_ADDRESS": "@sbt_contract_address",
+    "PNTS_CONTRACT_ADDRESS": "@pnts_contract_address"
+  }
+}
