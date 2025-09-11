@@ -1,4 +1,4 @@
-# Gemini Minter DApp (v2)
+# AAStar Minter Factory DApp (v2 for PoC)
 
 This is an upgraded DApp created by the Gemini agent. It allows users to mint ERC20 tokens (PNTs), transferable ERC721 NFTs, and non-transferable Soul-Bound Tokens (SBTs), all for free (gas is sponsored by the contract owner).
 
@@ -93,25 +93,25 @@ You will need two separate terminal windows.
 
   链上资产查询命令
 
-  这是给您准备的查询命令。请注意，您需要将命令中的 OWNER_ADDRESS 替换为您的地址:
+  这是给您准备的查询命令。请注意，您需要将命令中的 OWNER_ADDRESS 替换为您的地址：
   `0xe24b6f321B0140716a2b671ed0D983bb64E7DaFA`。
 
-   1. 查询PNTs代币余额 (ERC20):
-       * 这个命令会查询您的地址拥有的PNTs代币数量（结果单位是Wei，1后面有18个0）。
+   1. 查询 PNTs 代币余额 (ERC20):
+       * 这个命令会查询您的地址拥有的 PNTs 代币数量（结果单位是 Wei，1 后面有 18 个 0）。
 
    1     cast call 0x3e7B771d4541eC85c8137e950598Ac97553a337a
      "balanceOf(address)" OWNER_ADDRESS --rpc-url
      https://eth-sepolia.g.alchemy.com/v2/IIY_LZO
 
-   2. 查询NFT拥有数量 (ERC721):
-       * 这个命令会查询您的地址拥有的NFT数量。
+   2. 查询 NFT 拥有数量 (ERC721):
+       * 这个命令会查询您的地址拥有的 NFT 数量。
 
    1     cast call 0xC9fB3Fe98442A23a0CA5884dC114989FF7b3d97a
      "balanceOf(address)" OWNER_ADDRESS --rpc-url
      https://eth-sepolia.g.alchemy.com/v2/IIY_LZO
-   3. 查询某个NFT的拥有者 (ERC721):
-       * 这个命令可以验证ID为 0
-         的NFT是否归您所有（如果查询结果是您的地址，则验证成功）。
+   3. 查询某个 NFT 的拥有者 (ERC721):
+       * 这个命令可以验证 ID 为 0
+         的 NFT 是否归您所有（如果查询结果是您的地址，则验证成功）。
 
    1     cast call 0xC9fB3Fe98442A23a0CA5884dC114989FF7b3d97a
      "ownerOf(uint256)" 0 --rpc-url
@@ -154,7 +154,7 @@ You will need two separate terminal windows.
     #### **方案二：结合 ERC-5192 (Immutable NFTs)**
     
     * **ERC-5192** 是一个提案，旨在标准化不可转移的 ERC-721。它通过一个 `isTransferable(uint256 tokenId)` 函数来明确表示某个 NFT 是否可转移。
-    * **优点：** 提供了标准化的接口，更容易被钱包和Dapp识别为不可转移的代币。
+    * **优点：** 提供了标准化的接口，更容易被钱包和 Dapp 识别为不可转移的代币。
     * **缺点：** 仍处于草案阶段，不像 ERC-721 那样被广泛接受。如果直接使用这个标准，可能需要自己实现额外的声誉修改逻辑。
     
     #### **方案三：ERC-4973 (Account-Bound Tokens)**
@@ -186,7 +186,7 @@ You will need two separate terminal windows.
 
 ------
 
-基于你说的ERC-721 的扩展 方案，要考虑reputation只允许特定的社区合约来自动计算后修改某个sbt的reputation，是规则自动计算，不依赖人工，是否可以理解为外部utils合约来管理reputation？留出接口即可，整理一个完整方案给我
+基于你说的 ERC-721 的扩展 方案，要考虑 reputation 只允许特定的社区合约来自动计算后修改某个 sbt 的 reputation，是规则自动计算，不依赖人工，是否可以理解为外部 utils 合约来管理 reputation？留出接口即可，整理一个完整方案给我
 --====
 好的，根据您的要求，我将基于 **ERC-721 扩展方案**，为您整理一个完整且详细的 **SBT (Soulbound Token)** 实现方案。这个方案将特别考虑到您提出的核心需求：**声誉值（Reputation）的修改只允许由特定的“社区合约”（外部工具合约）通过自动计算后进行，且不依赖人工操作。**
 
