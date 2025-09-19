@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/jason/Dev/mycelium/my-exploration/projects/YetAnotherAA/aastar/**)",
+      "Read(//Users/jason/Dev/mycelium/my-exploration/projects/YetAnotherAA/aastar-frontend/lib/**)",
+      "Read(//Users/jason/Dev/mycelium/my-exploration/projects/YetAnotherAA/validator/src/**)",
+      "Bash(git checkout:*)",
+      "Bash(git push:*)",
+      "Read(//Users/jason/Dev/mycelium/my-exploration/projects/YetAnotherAA/**)"
+    ],
+    "additionalDirectories": [
+      "/Users/jason/Dev/mycelium/my-exploration/projects/SuperPaymaster-Contract",
+      "/Users/jason/Dev/mycelium/my-exploration/projects/SuperRelay"
+    ]
+  }
+}

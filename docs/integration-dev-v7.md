@@ -1,29 +1,29 @@
-# SuperPaymaster V7 开发实施计划
+# SuperPaymaster V7 开发集成计划
 
 ## 📋 项目概述
 
-基于V7 Gas优化技术方案，本文档制定了完整的开发实施计划，整合现有的四个仓库：
-- **gemini-minter**: 基础PNTs/SBT/NFT合约和前端界面
-- **SuperPaymaster-Contract**: 核心SuperPaymaster合约系统
-- **SuperRelay**: 基于rundler的Rust Relay服务
-- **YetAnotherAA**: 完整的AirAccount生命周期管理系统（BLS签名+ERC-4337+用户认证）
+基于 V7 Gas 优化技术方案，本文档制定了完整的开发实施计划，整合现有的四个仓库：
+- **gemini-minter**: 基础 PNTs/SBT/NFT 合约和前端界面
+- **SuperPaymaster-Contract**: 核心 SuperPaymaster 合约系统
+- **SuperRelay**: 基于 rundler 的 Rust Relay 服务
+- **YetAnotherAA**: 完整的 AirAccount 生命周期管理系统（BLS 签名+ERC-4337+ 用户认证）
 
 ## 🎯 核心目标
 
-1. **Gas成本优化**: 信用模式实现73%成本降低至8,842 gas/笔
-2. **用户体验**: 无需ETH，支持Email+Passkey登录
-3. **社区生态**: 支持多社区发行自己的PNTs和Paymaster
+1. **Gas 成本优化**: 信用模式实现 73% 成本降低至 8,842 gas/笔
+2. **用户体验**: 无需 ETH，支持 Email+Passkey 登录
+3. **社区生态**: 支持多社区发行自己的 PNTs 和 Paymaster
 4. **系统集成**: AirAccount + 信用模式 + 批量优化
 
 ## 🏗️ 系统架构分析
 
 ### 现有架构发现与集成策略
 
-通过对SuperPaymaster-Contract的深度分析，我们发现了以下核心架构组件：
+通过对 SuperPaymaster-Contract 的深度分析，我们发现了以下核心架构组件：
 
 #### 发现的核心架构
 
-**1. Router模式架构** (`/src/base/` + `/src/interfaces/`)
+**1. Router 模式架构** (`/src/base/` + `/src/interfaces/`)
 ```solidity
 // 完整的paymaster路由系统
 BasePaymasterRouter.sol      // 基础路由器实现
@@ -37,7 +37,7 @@ IPaymasterRouter.sol         // 标准路由器接口
 └── 事件定义 + 函数签名    // 完整的事件系统
 ```
 
-**2. Singleton Paymaster架构** (`/singleton-paymaster-backup/src/`)
+**2. Singleton Paymaster 架构** (`/singleton-paymaster-backup/src/`)
 ```solidity
 // 完整的ERC-4337 paymaster实现
 SingletonPaymasterV7.sol     // 最新v0.7实现
@@ -57,11 +57,11 @@ BaseSingletonPaymaster.sol   // paymaster基础类
 | 方案 | 优势 | 缺点 | 建议 |
 |------|------|------|------|
 | **全新开发** | 完全控制架构 | 重复造轮，风险高 | ❌ 不推荐 |
-| **基于 Router扩展** | 复用成熟路由逻辑 | 需增加信用功能 | 🟡 部分采用 |
-| **基于 Singleton扩展** | 完整ERC-4337功能 | 缺乏路由管理 | 🟡 部分采用 |
+| **基于 Router 扩展** | 复用成熟路由逻辑 | 需增加信用功能 | 🟡 部分采用 |
+| **基于 Singleton 扩展** | 完整 ERC-4337 功能 | 缺乏路由管理 | 🟡 部分采用 |
 | **混合架构** | 结合两者优势 | 架构复杂度增加 | ✅ **推荐** |
 
-#### 最终V7架构决策
+#### 最终 V7 架构决策
 
 采用**混合架构**，充分利用现有组件：
 
@@ -84,7 +84,7 @@ V7 SuperPaymaster生态系统
 
 ### 现有系统状态
 
-#### gemini-minter项目
+#### gemini-minter 项目
 ```
 ✅ 已完成:
 ├── PNTs合约 (基础ERC20)
@@ -100,7 +100,7 @@ V7 SuperPaymaster生态系统
 └── 批量优化
 ```
 
-#### SuperPaymaster-Contract项目
+#### SuperPaymaster-Contract 项目
 ```
 ✅ 已完成基础架构:
 ├── BasePaymasterRouter.sol (路由器基础类)
@@ -116,7 +116,7 @@ V7 SuperPaymaster生态系统
 └── 社区多paymaster管理
 ```
 
-#### SuperRelay项目
+#### SuperRelay 项目
 ```
 ✅ 基础框架:
 ├── ERC-4337 Bundler
@@ -133,7 +133,7 @@ V7 SuperPaymaster生态系统
 
 ## 🔧 核心合约设计变化
 
-### 1. 增强型PNTs合约
+### 1. 增强型 PNTs 合约
 
 ```solidity
 // 从基础PNTs升级到支持信用和批量的版本
@@ -172,7 +172,7 @@ contract EnhancedPNTs is ERC20 {
 }
 ```
 
-### 2. 增强型SuperPaymaster路由器
+### 2. 增强型 SuperPaymaster 路由器
 
 ```solidity
 // 基于现有BasePaymasterRouter扩展信用功能
@@ -251,7 +251,7 @@ contract CreditPaymasterRouter is BasePaymasterRouter {
 }
 ```
 
-### 3. PNTs工厂合约
+### 3. PNTs 工厂合约
 
 ```solidity
 // 全新开发：支持社区发行自己的PNTs
@@ -296,7 +296,7 @@ contract PNTsFactory {
 }
 ```
 
-### 4. 信用模式Singleton Paymaster
+### 4. 信用模式 Singleton Paymaster
 
 ```solidity
 // 基于现有SingletonPaymasterV7扩展信用功能
@@ -419,7 +419,7 @@ Week 2: 部署与集成
 
 #### 关键代码变更
 
-**1. 升级gemini-minter/contracts/src/PNTs.sol**
+**1. 升级 gemini-minter/contracts/src/PNTs.sol**
 ```solidity
 // 从基础PNTs升级为EnhancedPNTs
 contract PNTs is ERC20, Ownable {
@@ -454,7 +454,7 @@ contract PNTs is ERC20, Ownable {
 }
 ```
 
-**2. 扩展现有SuperPaymaster架构并部署**
+**2. 扩展现有 SuperPaymaster 架构并部署**
 ```bash
 cd SuperPaymaster-Contract
 
@@ -482,15 +482,15 @@ forge create --rpc-url $RPC_URL --private-key $PRIVATE_KEY \
   --constructor-args $ENTRYPOINT $OWNER $MANAGER "[$SIGNERS]" $CREDIT_MANAGER
 ```
 
-### Phase 2: SuperRelay服务扩展 (Week 3-4)
+### Phase 2: SuperRelay 服务扩展 (Week 3-4)
 
-#### Rust代码扩展
+#### Rust 代码扩展
 
-**1. 扩展crates/paymaster-relay/src/lib.rs**
+**1. 扩展 crates/paymaster-relay/src/lib.rs**
 ```rust
 // 新增信用模式支持
 pub struct CreditModeHandler {
-    pnts_contracts: HashMap<String, Address>, // 社区PNTs合约映射
+    pnts_contracts: HashMap<String, Address>, // 社区 PNTs 合约映射
     sbt_factory: Address,
     settlement_contract: Address,
 }
@@ -500,7 +500,7 @@ impl CreditModeHandler {
         &self,
         user_op: &UserOperation,
     ) -> Result<SponsorshipResult> {
-        // 1. 验证SBT持有
+        // 1. 验证 SBT 持有
         let has_sbt = self.check_sbt(user_op.sender).await?;
         if !has_sbt {
             return Err("No SBT found".into());
@@ -513,7 +513,7 @@ impl CreditModeHandler {
             return Err("Insufficient credit".into());
         }
         
-        // 3. 选择最优Paymaster
+        // 3. 选择最优 Paymaster
         let paymaster = self.select_optimal_paymaster(&user_op).await?;
         
         // 4. 生成信用模式签名
@@ -526,7 +526,7 @@ impl CreditModeHandler {
     }
     
     async fn check_sbt(&self, user: Address) -> Result<bool> {
-        // 检查用户是否持有有效SBT
+        // 检查用户是否持有有效 SBT
         let sbt_balance = self.provider
             .get_balance(self.sbt_factory, user)
             .await?;
@@ -535,7 +535,7 @@ impl CreditModeHandler {
 }
 ```
 
-**2. 修改bin/super-relay/src/main.rs**
+**2. 修改 bin/super-relay/src/main.rs**
 ```rust
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -571,7 +571,7 @@ async fn main() -> Result<()> {
 
 #### 前端代码变更
 
-**1. 更新gemini-minter/frontend/src/config.js**
+**1. 更新 gemini-minter/frontend/src/config.js**
 ```javascript
 export const contracts = {
   // 现有合约
@@ -580,9 +580,9 @@ export const contracts = {
   pnts: "0x...",
   
   // 新增合约
-  superPaymaster: "0x...",     // SuperPaymaster注册合约
-  pntsFactory: "0x...",        // PNTs工厂合约
-  creditPaymaster: "0x...",    // 信用模式Paymaster
+  superPaymaster: "0x...",     // SuperPaymaster 注册合约
+  pntsFactory: "0x...",        // PNTs 工厂合约
+  creditPaymaster: "0x...",    // 信用模式 Paymaster
   settlementContract: "0x...", // 结算合约
 };
 
@@ -605,10 +605,10 @@ import { contracts, superRelay } from '../config';
 export default function CreditSponsor() {
   const sponsorTransaction = async (txData) => {
     try {
-      // 1. 构造UserOperation
+      // 1. 构造 UserOperation
       const userOp = await buildUserOperation(txData);
       
-      // 2. 请求SuperRelay信用代付
+      // 2. 请求 SuperRelay 信用代付
       const response = await fetch(`${superRelay.url}${superRelay.endpoints.sponsor}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -622,7 +622,7 @@ export default function CreditSponsor() {
       const result = await response.json();
       
       if (result.success) {
-        // 3. 提交到EntryPoint
+        // 3. 提交到 EntryPoint
         const entryPoint = new ethers.Contract(contracts.entryPoint, entryPointABI, signer);
         const tx = await entryPoint.handleOps([{
           ...userOp,
@@ -640,8 +640,8 @@ export default function CreditSponsor() {
   
   return (
     <div className="credit-sponsor">
-      <h3>信用模式Gas代付</h3>
-      <p>余额可为负，基于SBT信誉</p>
+      <h3>信用模式 Gas 代付</h3>
+      <p>余额可为负，基于 SBT 信誉</p>
       <button onClick={() => sponsorTransaction(sampleTx)}>
         发起信用交易
       </button>
@@ -652,7 +652,7 @@ export default function CreditSponsor() {
 
 ### Phase 4: 生态集成与优化 (Week 7-8)
 
-#### 社区PNTs发行系统
+#### 社区 PNTs 发行系统
 
 **1. 新增社区管理界面**
 ```javascript
@@ -671,27 +671,27 @@ export default function CommunityManager() {
   
   return (
     <div className="community-manager">
-      <h2>社区PNTs管理</h2>
+      <h2>社区 PNTs 管理</h2>
       
       <div className="deploy-form">
-        <h3>发行新的社区PNTs</h3>
+        <h3>发行新的社区 PNTs</h3>
         <form onSubmit={handleDeploy}>
           <input placeholder="社区名称 (如: aa, bb)" name="communityName" />
           <input placeholder="代币名称 (如: AA Points)" name="tokenName" />
           <input placeholder="代币符号 (如: aaPNTs)" name="symbol" />
-          <button type="submit">发行PNTs</button>
+          <button type="submit">发行 PNTs</button>
         </form>
       </div>
       
       <div className="communities-list">
-        <h3>已发行的社区PNTs</h3>
+        <h3>已发行的社区 PNTs</h3>
         {communities.map(community => (
           <div key={community.name} className="community-card">
             <h4>{community.name}</h4>
-            <p>合约: {community.address}</p>
-            <p>汇率: 1:{community.exchangeRate / 1e18}</p>
+            <p>合约：{community.address}</p>
+            <p>汇率：1:{community.exchangeRate / 1e18}</p>
             <button onClick={() => registerPaymaster(community)}>
-              注册Paymaster
+              注册 Paymaster
             </button>
           </div>
         ))}
@@ -701,20 +701,20 @@ export default function CommunityManager() {
 }
 ```
 
-#### AirAccount集成
+#### AirAccount 集成
 
-**2. 扩展SuperRelay支持AirAccount**
+**2. 扩展 SuperRelay 支持 AirAccount**
 ```rust
-// 新增AirAccount检查
+// 新增 AirAccount 检查
 impl CreditModeHandler {
     async fn validate_air_account(&self, user_op: &UserOperation) -> Result<bool> {
-        // 检查是否是有效的AirAccount
+        // 检查是否是有效的 AirAccount
         if self.is_air_account(user_op.sender).await? {
-            // AirAccount用户，检查绑定的Email和SBT
+            // AirAccount 用户，检查绑定的 Email 和 SBT
             return self.validate_air_account_sbt(user_op.sender).await;
         }
         
-        // 普通EOA用户，直接检查SBT
+        // 普通 EOA 用户，直接检查 SBT
         self.check_sbt(user_op.sender).await
     }
 }
@@ -722,30 +722,30 @@ impl CreditModeHandler {
 
 ## 📊 测试与验证计划
 
-### Gas成本验证
+### Gas 成本验证
 
-**测试脚本: scripts/gas-benchmark.js**
+**测试脚本：scripts/gas-benchmark.js**
 ```javascript
 async function benchmarkGasCosts() {
   const scenarios = [
-    { name: 'ETH自支付', gasUsed: await testETHPayment() },
+    { name: 'ETH 自支付', gasUsed: await testETHPayment() },
     { name: '信用模式单笔', gasUsed: await testCreditMode(1) },
-    { name: '信用模式批量10笔', gasUsed: await testCreditMode(10) },
-    { name: '信用模式批量50笔', gasUsed: await testCreditMode(50) },
+    { name: '信用模式批量 10 笔', gasUsed: await testCreditMode(10) },
+    { name: '信用模式批量 50 笔', gasUsed: await testCreditMode(50) },
   ];
   
-  console.log('Gas成本对比:');
+  console.log('Gas 成本对比：');
   scenarios.forEach(scenario => {
     const vs_eth = ((scenario.gasUsed - scenarios[0].gasUsed) / scenarios[0].gasUsed * 100).toFixed(1);
     console.log(`${scenario.name}: ${scenario.gasUsed} gas (${vs_eth > 0 ? '+' : ''}${vs_eth}%)`);
   });
   
-  // 验证是否达到V7目标
+  // 验证是否达到 V7 目标
   const creditSingle = scenarios.find(s => s.name === '信用模式单笔').gasUsed;
   const ethBaseline = scenarios[0].gasUsed;
   const improvement = (ethBaseline - creditSingle) / ethBaseline * 100;
   
-  console.log(`\n目标验证: 信用模式应比ETH低73%，实际: ${improvement.toFixed(1)}%`);
+  console.log(`\n目标验证：信用模式应比 ETH 低 73%，实际：${improvement.toFixed(1)}%`);
   console.log(improvement >= 70 ? '✅ 目标达成' : '❌ 需要优化');
 }
 ```
@@ -808,7 +808,7 @@ async function benchmarkGasCosts() {
 
 ### 监控与度量
 
-**关键指标KPI**
+**关键指标 KPI**
 ```
 性能指标:
 ├── Gas成本: <10,900 gas/笔(单笔) <8,842 gas/笔(批量)
@@ -859,7 +859,7 @@ open http://localhost:8080/dashboard
 
 ### 经济风险
 
-1. **PNTs汇率波动**
+1. **PNTs 汇率波动**
    - 动态汇率调整算法
    - 稳定币锚定机制
    - 流动性缓冲池
@@ -904,21 +904,56 @@ open http://localhost:8080/dashboard
 ## 🎯 成功验收标准
 
 ### 技术验收
-- [ ] 信用模式单笔交易gas成本 ≤ 10,900
-- [ ] 批量50笔分摊成本 ≤ 8,842 gas/笔
+- [ ] 信用模式单笔交易 gas 成本 ≤ 10,900
+- [ ] 批量 50 笔分摊成本 ≤ 8,842 gas/笔
 - [ ] 系统可用性 ≥ 99.9%
-- [ ] API响应时间 ≤ 100ms
+- [ ] API 响应时间 ≤ 100ms
 
 ### 业务验收
-- [ ] 用户无需持有ETH即可交易
-- [ ] 支持Email+Passkey登录流程
-- [ ] 多社区可发行自己的PNTs
+- [ ] 用户无需持有 ETH 即可交易
+- [ ] 支持 Email+Passkey 登录流程
+- [ ] 多社区可发行自己的 PNTs
 - [ ] 负余额功能正常工作
 
 ### 集成验收
-- [ ] AirAccount集成无缝工作
-- [ ] SuperRelay服务稳定运行
+- [ ] AirAccount 集成无缝工作
+- [ ] SuperRelay 服务稳定运行
 - [ ] 前端界面用户友好
 - [ ] 端到端测试通过
 
-通过这个V7开发计划，我们将实现从现有的基础功能到完整SuperPaymaster生态系统的升级，为Web3应用提供真正实用的Gas优化解决方案。
+通过这个 V7 开发计划，我们将实现从现有的基础功能到完整 SuperPaymaster 生态系统的升级，为 Web3 应用提供真正实用的 Gas 优化解决方案。
+
+
+## 开发准备
+
+⏺ ✅ 完成！所有 4 个仓库的 integration-dev 分支已创建成功
+
+  📌 最终状态确认
+
+  | 仓库                      | 分支状态              | 远程推送         | GitHub PR 链接
+                                                                 |
+  |-------------------------|-------------------|--------------|-------------------------
+  ---------------------------------------------------|
+  | gemini-minter           | ✅ integration-dev | ✅ 已推送        |
+  https://github.com/jhfnetboy/gemini-minter/pull/new/integration-dev        |
+  | SuperPaymaster-Contract | ✅ integration-dev | ✅ 已推送        |
+  https://github.com/AAStarCommunity/SuperPaymaster/pull/new/integration-dev |
+  | SuperRelay              | ✅ integration-dev | ✅ 已推送        |
+  https://github.com/AAStarCommunity/SuperRelay/pull/new/integration-dev     |
+  | YetAnotherAA            | ✅ integration-dev | ✅ 已推送到你的 fork |
+  https://github.com/jhfnetboy/YetAnotherAA/pull/new/integration-dev         |
+
+  🎯 关键成就
+
+  - 所有 4 个仓库都已切换到 integration-dev 分支
+  - 所有分支都已设置远程跟踪
+  - YetAnotherAA 成功使用你的 fork 并推送
+
+  🚀 现在可以开始
+
+  根据 dev-v7.md 中的开发计划，你可以在这 4 个仓库的 integration-dev 分支上进行集成开发：
+
+  1. gemini-minter: 增强 PNTs 合约，添加信用模式支持
+  2. SuperPaymaster-Contract: 扩展 Router，添加 SimpleStakeCredit
+  3. SuperRelay: 集成 AirAccount 检查和批量处理
+  4. YetAnotherAA: 与 SuperPaymaster 系统集成
