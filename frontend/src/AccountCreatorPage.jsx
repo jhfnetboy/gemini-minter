@@ -214,12 +214,27 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
         body: JSON.stringify({
           owner: account,
           salt: salt,
-          factoryAddress: validation.factory.address
+          factoryAddress: validation.factory.address,
+          factoryType: validation.factory.type || 'simple'
         }),
       });
       
+      // 检查响应状态和内容类型
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
+        throw new Error(`API Error (${response.status}): ${errorText}`);
+      }
+      
+      // 检查是否为JSON响应
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await response.text();
+        console.error('Non-JSON Response:', responseText);
+        throw new Error('Server returned non-JSON response');
+      }
+      
       const data = await response.json();
-      if (!response.ok) throw new Error(data.details || 'Address calculation failed.');
       
       const { predictedAddress } = data;
       setPredictedAddress(predictedAddress);

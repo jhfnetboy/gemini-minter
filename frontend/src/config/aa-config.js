@@ -22,6 +22,32 @@ export const AA_NETWORKS = {
           "function accountImplementation() view returns (address)",
           "function entryPoint() view returns (address)"
         ]
+      },
+      official: {
+        name: "SimpleAccountFactory (Official)",
+        address: "0x9406Cc6185a346906296840746125a0E44976454", // Official ERC-4337 SimpleAccountFactory
+        type: "official",
+        version: "v0.6",
+        description: "Official SimpleAccountFactory from account-abstraction repository",
+        abi: [
+          "function createAccount(address owner, uint256 salt) returns (address ret)",
+          "function getAddress(address owner, uint256 salt) view returns (address)", // 注意：这个有ethers.js bug
+          "function accountImplementation() view returns (address)"
+        ],
+        note: "⚠️ getAddress function has ethers.js Contract bug, use at your own risk"
+      },
+      alchemy: {
+        name: "Alchemy LightAccountFactory",
+        address: "0x00004EC70002a32400f8ae005A26aeFe730D0A1E",
+        type: "alchemy",
+        version: "v1.1.0",
+        description: "Alchemy's gas-optimized LightAccount implementation",
+        abi: [
+          "function createAccount(address owner, uint256 salt) returns (address)",
+          "function getAddress(address owner, uint256 salt) view returns (address)", // 注意：这个也有ethers.js bug
+          "function accountImplementation() view returns (address)"
+        ],
+        note: "⚠️ getAddress function has ethers.js Contract bug, may need workaround"
       }
     },
     isSupported: true
