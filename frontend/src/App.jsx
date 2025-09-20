@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { config } from './config';
 import './App.css';
+import AccountCreatorPage from './AccountCreatorPage';
 
 // Use appropriate backend URL based on environment
 const backendUrl = window.location.hostname === 'localhost' 
@@ -9,6 +10,7 @@ const backendUrl = window.location.hostname === 'localhost'
     : '';  // Production: use same domain (Vercel API routes)
 
 function App() {
+    const [currentPage, setCurrentPage] = useState('main'); // 'main' or 'account-creator'
     const [account, setAccount] = useState(null);
     const [provider, setProvider] = useState(null);
     const [message, setMessage] = useState('');
@@ -21,7 +23,7 @@ function App() {
 
     const [pntsBalance, setPntsBalance] = useState('0');
     const [pntsAmount, setPntsAmount] = useState('100');
-    
+
     // Owner mode states
     const [isOwner, setIsOwner] = useState(false);
     const [mintMode, setMintMode] = useState('self'); // 'self' or 'distribute'
@@ -59,7 +61,7 @@ function App() {
         }
     };
 
-    const fetchNfts = async (type, setter, retries = 3, forceRefresh = false) => {
+    const fetchNfts = useCallback(async (type, setter, retries = 3, forceRefresh = false) => {
         if (!displayAddress || !provider) return;
         const address = config.addresses[type];
         const abi = config.abis[type];
@@ -82,24 +84,24 @@ function App() {
             // since the contract doesn't have tokenOfOwnerByIndex
             const items = [];
             const balanceNum = parseInt(balance.toString());
-            
+
             // Create placeholder items based on balance
             for (let i = 0; i < balanceNum; i++) {
-                items.push({ 
+                items.push({
                     tokenId: `${i}`, // This is a placeholder, actual token IDs may be different
-                    placeholder: true 
+                    placeholder: true
                 });
             }
-            
+
             console.log(`Found ${items.length} ${type}s, updating state.`);
             setter(items);
         } catch (err) {
             console.error(`Failed to fetch ${type}s:`, err);
             setError(`Failed to fetch ${type.toUpperCase()}s. See console for details.`);
         }
-    };
+    }, [displayAddress, provider]);
 
-    const fetchPntsBalance = async (retries = 3, expectedBalance = null) => {
+    const fetchPntsBalance = useCallback(async (retries = 3, expectedBalance = null) => {
         if (!displayAddress || !provider) return;
         const address = config.addresses.pnts;
         const abi = config.abis.pnts;
@@ -124,7 +126,7 @@ function App() {
             console.error('Failed to fetch PNTs balance:', err);
             setError('Failed to fetch PNTs balance. See console for details.');
         }
-    };
+    }, [displayAddress, provider, pntsBalance]);
 
     const handleMint = async (isPNTs = false) => {
         if (!account || !provider) return setError('Please connect your wallet first.');
@@ -293,21 +295,49 @@ function App() {
             fetchNfts('sbt', setSbts, 3, false);
             fetchPntsBalance(3, null);
         }
-    }, [displayAddress, provider]);
+    }, [displayAddress, provider, fetchNfts, fetchPntsBalance]);
 
+    // 如果是账户创建页面，显示AccountCreatorPage
+    if (currentPage === 'account-creator') {
+        return (
+            <AccountCreatorPage
+                account={account}
+                provider={provider}
+                onBack={() => setCurrentPage('main')}
+            />
+        );
+    }
+
+    // 主页面
     return (
         <div className="App">
             <header className="App-header">
                 <div>
                     <h1>🚀 Gemini Minter DApp</h1>
                     <div className="header-right">
+                        <nav className="page-nav">
+                            <button
+                                type="button"
+                                className={currentPage === 'main' ? 'nav-btn active' : 'nav-btn'}
+                                onClick={() => setCurrentPage('main')}
+                            >
+                                Main
+                            </button>
+                            <button
+                                type="button"
+                                className={currentPage === 'account-creator' ? 'nav-btn active' : 'nav-btn'}
+                                onClick={() => setCurrentPage('account-creator')}
+                            >
+                                Account Creator
+                            </button>
+                        </nav>
                         {account ? (
                             <div className="account-info">
                                 <p>Connected: <span className="address">{`${account.substring(0, 6)}...${account.substring(account.length - 4)}`}</span></p>
                                 {isOwner && <span className="owner-badge">👑 Owner</span>}
                             </div>
                         ) : (
-                            <button onClick={connectWallet} className="connect-btn">Connect Wallet</button>
+                            <button type="button" onClick={connectWallet} className="connect-btn">Connect Wallet</button>
                         )}
                     </div>
                 </div>
@@ -357,11 +387,11 @@ function App() {
                                         className="address-input"
                                     />
                                     <div className="button-group">
-                                        <button onClick={handleAddressCheck} className="check-btn">
+                                        <button type="button" onClick={handleAddressCheck} className="check-btn">
                                             Check Balance
                                         </button>
                                         {displayAddress !== account && (
-                                            <button onClick={switchToSelfView} className="switch-btn">
+                                            <button type="button" onClick={switchToSelfView} className="switch-btn">
                                                 Back to My View
                                             </button>
                                         )}
@@ -384,8 +414,8 @@ function App() {
                                 onChange={(e) => setPntsAmount(e.target.value)}
                                 placeholder="Amount of PNTs"
                             />
-                            <button onClick={() => handleMint(true)} disabled={loading || !account}>
-                                {loading ? 'Minting...' : 
+                            <button type="button" onClick={() => handleMint(true)} disabled={loading || !account}>
+                                {loading ? 'Minting...' :
                                  isOwner && mintMode === 'distribute' ? `Send PNTs` : 'Get Free PNTs'}
                             </button>
                         </div>
@@ -410,8 +440,8 @@ function App() {
                                 </div>
                             </label>
                         </div>
-                        <button onClick={() => handleMint(false)} disabled={loading || !account} className="mint-btn">
-                            {loading ? 'Minting...' : 
+                        <button type="button" onClick={() => handleMint(false)} disabled={loading || !account} className="mint-btn">
+                            {loading ? 'Minting...' :
                              isOwner && mintMode === 'distribute' ? `Send ${mintType.toUpperCase()}` : `Mint ${mintType.toUpperCase()}`}
                         </button>
                     </div>
@@ -421,7 +451,8 @@ function App() {
                     <h2 className="collection-header">
                         {displayAddress === account ? '📦 My Collection' : 
                          `📦 Collection of ${displayAddress?.substring(0, 6)}...${displayAddress?.substring(displayAddress.length - 4)}`}
-                        <button 
+                        <button
+                            type="button"
                             onClick={() => {
                                 console.log('Manual refresh triggered for:', displayAddress);
                                 fetchNfts('nft', setNfts, 3, false);
@@ -439,7 +470,7 @@ function App() {
                         <div className="nft-gallery">
                             {nfts.length > 0 ? (
                                 nfts.map((nft, index) => (
-                                    <div key={`nft-${index}`} className="nft-item">
+                                    <div key={`nft-${nft.tokenId}-${index}`} className="nft-item">
                                         <div className="nft-image-placeholder">
                                             <span className="token-id">NFT</span>
                                         </div>
@@ -455,7 +486,7 @@ function App() {
                         <div className="nft-gallery">
                             {sbts.length > 0 ? (
                                 sbts.map((sbt, index) => (
-                                    <div key={`sbt-${index}`} className="nft-item sbt-item">
+                                    <div key={`sbt-${sbt.tokenId}-${index}`} className="nft-item sbt-item">
                                         <div className="nft-image-placeholder sbt-placeholder">
                                             <span className="token-id">SBT</span>
                                         </div>
