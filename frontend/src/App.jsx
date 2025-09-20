@@ -208,7 +208,15 @@ function App() {
             if (!response.ok) throw new Error(data.details || 'Minting failed.');
             
             const { txHash } = data;
-            setMessage(`Transaction sent! Hash: ${txHash.substring(0,10)}... Waiting for confirmation...`);
+            const explorerUrl = `https://sepolia.etherscan.io/tx/${txHash}`;
+            setMessage(
+                <span>
+                    Transaction sent! Waiting for confirmation... <br/>
+                    <a href={explorerUrl} target="_blank" rel="noopener noreferrer" style={{color: '#007bff', textDecoration: 'underline'}}>
+                        {txHash.substring(0, 10)}...{txHash.substring(txHash.length - 8)}
+                    </a>
+                </span>
+            );
 
             const receipt = await provider.waitForTransaction(txHash, 1);
 
@@ -216,7 +224,14 @@ function App() {
                 throw new Error(`Transaction failed. Tx: ${txHash}`);
             }
 
-            setMessage(`Success! ${successMessage}. Tx: ${txHash.substring(0,10)}...`);
+            setMessage(
+                <span>
+                    Success! {successMessage} <br/>
+                    <a href={explorerUrl} target="_blank" rel="noopener noreferrer" style={{color: '#007bff', textDecoration: 'underline'}}>
+                        View on Etherscan: {txHash.substring(0, 10)}...{txHash.substring(txHash.length - 8)}
+                    </a>
+                </span>
+            );
             console.log('Transaction successful, preparing to refresh data...');
             
             // Force multiple refresh attempts to catch slow RPC updates
@@ -366,7 +381,7 @@ function App() {
     if (currentPage === 'network-test') {
         return (
             <div>
-                <button onClick={() => setCurrentPage('main')} style={{margin: '10px'}}>
+                <button type="button" onClick={() => setCurrentPage('main')} style={{margin: '10px'}}>
                     ← Back to Main
                 </button>
                 <NetworkTest />

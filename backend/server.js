@@ -83,19 +83,45 @@ app.post('/mintPNTs', (req, res) => {
 
 // --- CALCULATE ACCOUNT ADDRESS ---
 app.post('/calculateAccountAddress', async (req, res) => {
-    const { owner, salt, factoryAddress } = req.body;
+    const { owner, salt, factoryAddress, factoryType = 'simple' } = req.body;
     
     try {
-        console.log(`Calculate account address request: owner=${owner}, salt=${salt}, factory=${factoryAddress}`);
+        console.log(`Calculate account address request: owner=${owner}, salt=${salt}, factory=${factoryAddress}, type=${factoryType}`);
         
-        // Use the working factory with getCalculatedAddress function
-        const factoryAbi = [
-            "function getCalculatedAddress(address owner, uint256 salt) view returns (address)",
-            "function accountImplementation() view returns (address)"
-        ];
-        
-        const factoryContract = new ethers.Contract(factoryAddress, factoryAbi, provider);
-        const predictedAddress = await factoryContract.getCalculatedAddress(owner, salt);
+        let predictedAddress;
+
+        if (factoryType === 'simple') {
+            // Use getCalculatedAddress for our working factory (avoids ethers.js bug)
+            const factoryAbi = [
+                "function getCalculatedAddress(address owner, uint256 salt) view returns (address)",
+                "function accountImplementation() view returns (address)"
+            ];
+
+            const factoryContract = new ethers.Contract(factoryAddress, factoryAbi, provider);
+            predictedAddress = await factoryContract.getCalculatedAddress(owner, salt);
+        } else {
+            // For official/alchemy factories, use raw call to avoid ethers.js Contract bug
+            console.log('Using raw Interface call for official factory');
+            
+            const factoryInterface = new ethers.Interface([
+                "function getAddress(address owner, uint256 salt) view returns (address)"
+            ]);
+
+            // Encode the function call
+            const callData = factoryInterface.encodeFunctionData('getAddress', [owner, salt]);
+            console.log('Encoded call data:', callData);
+
+            // Make raw call
+            const rawResult = await provider.call({
+                to: factoryAddress,
+                data: callData
+            });
+            console.log('Raw result:', rawResult);
+
+            // Decode the result
+            const decodedResult = factoryInterface.decodeFunctionResult('getAddress', rawResult);
+            predictedAddress = decodedResult[0];
+        }
         
         console.log(`Address calculated: ${predictedAddress}`);
         res.status(200).json({ predictedAddress });
