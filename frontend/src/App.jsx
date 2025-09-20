@@ -3,6 +3,7 @@ import { ethers } from 'ethers';
 import { config } from './config';
 import './App.css';
 import AccountCreatorPage from './AccountCreatorPage';
+import NetworkTest from './NetworkTest';
 
 // Use appropriate backend URL based on environment
 const backendUrl = window.location.hostname === 'localhost' 
@@ -10,7 +11,7 @@ const backendUrl = window.location.hostname === 'localhost'
     : '';  // Production: use same domain (Vercel API routes)
 
 function App() {
-    const [currentPage, setCurrentPage] = useState('main'); // 'main' or 'account-creator'
+    const [currentPage, setCurrentPage] = useState('main'); // 'main', 'account-creator', or 'network-test'
     const [account, setAccount] = useState(null);
     const [provider, setProvider] = useState(null);
     const [message, setMessage] = useState('');
@@ -31,15 +32,34 @@ function App() {
     const [displayAddress, setDisplayAddress] = useState(null); // For showing balances
 
     const connectWallet = async () => {
+        // Check if MetaMask is installed
         if (typeof window.ethereum === 'undefined') {
-            return setError('MetaMask is not installed!');
+            return setError('MetaMask is not installed! Please install MetaMask extension.');
         }
+        
+        // Check if MetaMask is accessible
+        if (!window.ethereum.isMetaMask) {
+            return setError('MetaMask is not properly initialized. Please refresh the page.');
+        }
+        
         try {
+            setError(''); // Clear any previous errors
+            
+            // Request account access
+            const accounts = await window.ethereum.request({ 
+                method: 'eth_requestAccounts' 
+            });
+            
+            if (accounts.length === 0) {
+                return setError('No accounts found. Please unlock MetaMask.');
+            }
+            
             const web3Provider = new ethers.BrowserProvider(window.ethereum);
             setProvider(web3Provider);
+            
             const network = await web3Provider.getNetwork();
-            console.log('Connected to network:', network.name);
-            const accounts = await web3Provider.send('eth_requestAccounts', []);
+            console.log('Connected to network:', network.name, 'Chain ID:', network.chainId);
+            
             const connectedAccount = accounts[0];
             setAccount(connectedAccount);
             
@@ -55,9 +75,18 @@ function App() {
             
             // Save to localStorage for auto-reconnect
             localStorage.setItem('walletConnected', 'true');
+            
         } catch (err) {
-            setError('Failed to connect wallet.');
-            console.error(err);
+            console.error('Wallet connection error:', err);
+            
+            // Handle specific error cases
+            if (err.code === 4001) {
+                setError('Connection rejected by user.');
+            } else if (err.code === -32002) {
+                setError('Connection request already pending. Please check MetaMask.');
+            } else {
+                setError(`Failed to connect wallet: ${err.message}`);
+            }
         }
     };
 
@@ -246,11 +275,17 @@ function App() {
     // Auto-reconnect wallet on page load
     useEffect(() => {
         const autoConnect = async () => {
-            if (localStorage.getItem('walletConnected') === 'true' && window.ethereum) {
+            if (localStorage.getItem('walletConnected') === 'true' && 
+                typeof window.ethereum !== 'undefined' && 
+                window.ethereum.isMetaMask) {
                 try {
-                    const web3Provider = new ethers.BrowserProvider(window.ethereum);
-                    const accounts = await web3Provider.send('eth_accounts', []);
+                    // Check if already connected
+                    const accounts = await window.ethereum.request({ 
+                        method: 'eth_accounts' 
+                    });
+                    
                     if (accounts.length > 0) {
+                        const web3Provider = new ethers.BrowserProvider(window.ethereum);
                         setProvider(web3Provider);
                         const connectedAccount = accounts[0];
                         setAccount(connectedAccount);
@@ -258,13 +293,32 @@ function App() {
                         const isOwnerAccount = connectedAccount.toLowerCase() === config.OWNER_ADDRESS.toLowerCase();
                         setIsOwner(isOwnerAccount);
                         console.log('Auto-reconnected wallet:', connectedAccount);
+                    } else {
+                        // Clear stored connection if no accounts
+                        localStorage.removeItem('walletConnected');
                     }
                 } catch (err) {
                     console.error('Auto-connect failed:', err);
+                    localStorage.removeItem('walletConnected');
                 }
             }
         };
+        
+        // Wait for MetaMask to be ready
+        if (typeof window.ethereum !== 'undefined') {
+            autoConnect();
+        } else {
+            // Wait for MetaMask to load
+            const checkMetaMask = setInterval(() => {
+                if (typeof window.ethereum !== 'undefined') {
+                    clearInterval(checkMetaMask);
         autoConnect();
+                }
+            }, 100);
+            
+            // Stop checking after 5 seconds
+            setTimeout(() => clearInterval(checkMetaMask), 5000);
+        }
         
         // Listen for account changes
         if (window.ethereum) {
@@ -307,6 +361,19 @@ function App() {
             />
         );
     }
+
+    // 如果是网络测试页面，显示NetworkTest
+    if (currentPage === 'network-test') {
+        return (
+            <div>
+                <button onClick={() => setCurrentPage('main')} style={{margin: '10px'}}>
+                    ← Back to Main
+                </button>
+                <NetworkTest />
+            </div>
+        );
+    }
+
 
     // 主页面
     return (

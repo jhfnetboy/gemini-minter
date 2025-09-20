@@ -1,0 +1,7 @@
+[dotenv@17.2.2] injecting env (7) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+Server wallet address: 0xe24b6f321B0140716a2b671ed0D983bb64E7DaFA
+Backend server listening at http://localhost:3001
+Calculate account address request: owner=0x742d35cC6634c0532925A3b8d39E9C4b73e86E7D, salt=0, factory=0x76d62D4B321f36bE7d37100A2Bd5FD57A5D64727
+Address calculated: 0x76d62D4B321f36bE7d37100A2Bd5FD57A5D64727
+Calculate account address request: owner=0x742d35cC6634c0532925A3b8d39E9C4b73e86E7D, salt=0, factory=0x76d62D4B321f36bE7d37100A2Bd5FD57A5D64727
+Address calculated: 0x76d62D4B321f36bE7d37100A2Bd5FD57A5D64727

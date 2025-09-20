@@ -1,153 +1,30 @@
 // ERC-4337 Account Abstraction Configuration
-// Separate from main config to avoid conflicts
+// All RPC calls go through backend proxy for security
 
 export const AA_NETWORKS = {
-  // Sepolia Testnet
+  // Sepolia Testnet - Only supported network for now
   11155111: {
     chainId: 11155111,
     name: "Sepolia",
     shortName: "sepolia",
-    rpcUrl: "https://rpc.sepolia.org",
     blockExplorer: "https://sepolia.etherscan.io",
     entryPoint: "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789", // EntryPoint v0.6
     factories: {
       simple: {
-        name: "SimpleAccountFactory",
-        address: "0x91E60e0613810449d098b0b5Ec8b51A0FE8c8985",
+        name: "WorkingFactory",
+        address: "0xFc411603D1F1e2B1E9F692E2cBBb74Fd4f2feE18", // Working factory with getCalculatedAddress (final fix)
         type: "simple",
         version: "v0.6",
-        description: "Official ERC-4337 SimpleAccount implementation",
+        description: "Working factory that avoids ethers.js Contract bug by using getCalculatedAddress",
         abi: [
           "function createAccount(address owner, uint256 salt) returns (address ret)",
-          "function getAddress(address owner, uint256 salt) view returns (address)",
-          "function accountImplementation() view returns (address)"
-        ]
-      },
-      alchemy: {
-        name: "Alchemy LightAccountFactory", 
-        address: "0x0000000000400CdFef5E2714E63d8040b700BC24",
-        type: "alchemy",
-        version: "v1.1.0",
-        description: "Alchemy's gas-optimized LightAccount implementation",
-        abi: [
-          "function createAccount(address owner, uint256 salt) returns (address)",
-          "function getAddress(address owner, uint256 salt) view returns (address)",
-          "function accountImplementation() view returns (address)"
+          "function getCalculatedAddress(address owner, uint256 salt) view returns (address)",
+          "function accountImplementation() view returns (address)",
+          "function entryPoint() view returns (address)"
         ]
       }
     },
     isSupported: true
-  },
-  
-  // OP Sepolia
-  11155420: {
-    chainId: 11155420,
-    name: "OP Sepolia",
-    shortName: "op-sepolia", 
-    rpcUrl: "https://sepolia.optimism.io",
-    blockExplorer: "https://sepolia-optimism.etherscan.io",
-    entryPoint: "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
-    factories: {
-      simple: {
-        name: "SimpleAccountFactory",
-        address: "0x91E60e0613810449d098b0b5Ec8b51A0FE8c8985", // Need to verify
-        type: "simple", 
-        version: "v0.6",
-        description: "Official ERC-4337 SimpleAccount implementation",
-        abi: [
-          "function createAccount(address owner, uint256 salt) returns (address ret)",
-          "function getAddress(address owner, uint256 salt) view returns (address)",
-          "function accountImplementation() view returns (address)"
-        ]
-      },
-      alchemy: {
-        name: "Alchemy LightAccountFactory",
-        address: "0x0000000000400CdFef5E2714E63d8040b700BC24", // Need to verify
-        type: "alchemy",
-        version: "v1.1.0",
-        description: "Alchemy's gas-optimized LightAccount implementation",
-        abi: [
-          "function createAccount(address owner, uint256 salt) returns (address)",
-          "function getAddress(address owner, uint256 salt) view returns (address)",
-          "function accountImplementation() view returns (address)"
-        ]
-      }
-    },
-    isSupported: true // Will verify during implementation
-  },
-  
-  // Optimism Mainnet
-  10: {
-    chainId: 10,
-    name: "Optimism",
-    shortName: "optimism",
-    rpcUrl: "https://mainnet.optimism.io", 
-    blockExplorer: "https://optimistic.etherscan.io",
-    entryPoint: "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
-    factories: {
-      simple: {
-        name: "SimpleAccountFactory", 
-        address: "0x91E60e0613810449d098b0b5Ec8b51A0FE8c8985", // Need to verify
-        type: "simple",
-        version: "v0.6",
-        description: "Official ERC-4337 SimpleAccount implementation",
-        abi: [
-          "function createAccount(address owner, uint256 salt) returns (address ret)",
-          "function getAddress(address owner, uint256 salt) view returns (address)",
-          "function accountImplementation() view returns (address)"
-        ]
-      },
-      alchemy: {
-        name: "Alchemy LightAccountFactory",
-        address: "0x0000000000400CdFef5E2714E63d8040b700BC24", // Need to verify
-        type: "alchemy",
-        version: "v1.1.0",
-        description: "Alchemy's gas-optimized LightAccount implementation",
-        abi: [
-          "function createAccount(address owner, uint256 salt) returns (address)",
-          "function getAddress(address owner, uint256 salt) view returns (address)",
-          "function accountImplementation() view returns (address)"
-        ]
-      }
-    },
-    isSupported: false // Will enable after verification
-  },
-  
-  // Ethereum Mainnet
-  1: {
-    chainId: 1,
-    name: "Ethereum",
-    shortName: "mainnet",
-    rpcUrl: "https://eth.llamarpc.com",
-    blockExplorer: "https://etherscan.io", 
-    entryPoint: "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
-    factories: {
-      simple: {
-        name: "SimpleAccountFactory",
-        address: "0x91E60e0613810449d098b0b5Ec8b51A0FE8c8985", // Need to verify
-        type: "simple",
-        version: "v0.6",
-        description: "Official ERC-4337 SimpleAccount implementation",
-        abi: [
-          "function createAccount(address owner, uint256 salt) returns (address ret)",
-          "function getAddress(address owner, uint256 salt) view returns (address)",
-          "function accountImplementation() view returns (address)"
-        ]
-      },
-      alchemy: {
-        name: "Alchemy LightAccountFactory",
-        address: "0x0000000000400CdFef5E2714E63d8040b700BC24", // Need to verify
-        type: "alchemy",
-        version: "v1.1.0",
-        description: "Alchemy's gas-optimized LightAccount implementation",
-        abi: [
-          "function createAccount(address owner, uint256 salt) returns (address)",
-          "function getAddress(address owner, uint256 salt) view returns (address)",
-          "function accountImplementation() view returns (address)"
-        ]
-      }
-    },
-    isSupported: false // Will enable after verification
   }
 };
 
@@ -178,4 +55,22 @@ export function getFactoryConfig(chainId, factoryType = DEFAULT_FACTORY_TYPE) {
 export function isNetworkSupported(chainId) {
   const network = getNetworkConfig(chainId);
   return network?.isSupported || false;
+}
+
+export function validateNetworkConfig(chainId, factoryType = DEFAULT_FACTORY_TYPE) {
+  const network = getNetworkConfig(chainId);
+  if (!network) {
+    return { isValid: false, error: `Network ${chainId} is not configured` };
+  }
+  
+  if (!network.isSupported) {
+    return { isValid: false, error: `Network ${network.name} is not supported yet` };
+  }
+  
+  const factory = network.factories?.[factoryType];
+  if (!factory) {
+    return { isValid: false, error: `Factory type ${factoryType} not available on ${network.name}` };
+  }
+  
+  return { isValid: true, network, factory };
 }

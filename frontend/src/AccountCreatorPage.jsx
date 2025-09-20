@@ -6,26 +6,49 @@ import {
   getNetworkConfig, 
   getFactoryConfig, 
   getSupportedNetworks,
+  validateNetworkConfig,
   ENTRYPOINT_INFO 
 } from './config/aa-config.js';
-import { 
-  calculateAccountAddress,
-  isAccountDeployed,
-  getAccountInfo,
-  getEntryPointDeposit,
-  validateNetworkConfig,
-  generateRandomSalt,
-  normalizeSalt,
-  formatAddress,
-  getExplorerUrl,
-  getAvailableFactories,
-  compareFactoryAddresses
-} from './utils/aa-utils.js';
-import { 
-  testAllKnownFactories, 
-  findWorkingFactory,
-  KNOWN_FACTORIES 
-} from './utils/factory-validator.js';
+
+// Use appropriate backend URL based on environment (same as NFT minter)
+const backendUrl = window.location.hostname === 'localhost' 
+    ? 'http://localhost:3001'  // Development: use local Express backend
+    : '';  // Production: use same domain (Vercel API routes)
+
+// Local utility functions
+function generateRandomSalt() {
+  return Math.floor(Math.random() * 1000000);
+}
+
+function normalizeSalt(salt) {
+  return Number(salt) || 0;
+}
+
+function formatAddress(address) {
+  if (!address || typeof address !== 'string') return '';
+  return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+}
+
+function getExplorerUrl(address, chainId, type = 'address') {
+  const network = getNetworkConfig(chainId);
+  if (!network) return '#';
+  
+  if (type === 'tx') {
+    return `${network.blockExplorer}/tx/${address}`;
+  } else {
+    return `${network.blockExplorer}/address/${address}`;
+  }
+}
+
+function getAvailableFactories(chainId) {
+  const network = getNetworkConfig(chainId);
+  if (!network || !network.factories) return [];
+  
+  return Object.entries(network.factories).map(([key, factory]) => ({
+    key,
+    ...factory
+  }));
+}
 import './App.css';
 
 // PNTs合约ABI (保持不变)
@@ -184,34 +207,71 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
       console.log('Owner:', account);
       console.log('Salt:', salt);
 
-      // 计算地址
-      const predictedAddr = await calculateAccountAddress(
-        account,
-        salt,
-        currentNetwork.chainId,
-        provider,
-        selectedFactory
-      );
-
-      // 获取账户详细信息
-      const info = await getAccountInfo(account, salt, currentNetwork.chainId, provider, selectedFactory);
+      // 使用backend API计算地址 (完全按照NFT minter模式)
+      const response = await fetch(`${backendUrl}/calculateAccountAddress`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          owner: account,
+          salt: salt,
+          factoryAddress: validation.factory.address
+        }),
+      });
       
-      // 获取EntryPoint存款
-      const deposit = await getEntryPointDeposit(predictedAddr, currentNetwork.chainId, provider);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.details || 'Address calculation failed.');
+      
+      const { predictedAddress } = data;
+      setPredictedAddress(predictedAddress);
+      setMessage(`✅ Address calculated successfully: ${predictedAddress.substring(0,10)}...`);
 
-      setPredictedAddress(predictedAddr);
-      setAccountInfo(info);
-      setEntryPointDeposit(deposit);
-
-      console.log('=== Calculation Result ===');
-      console.log('Predicted Address:', predictedAddr);
-      console.log('Is Deployed:', info.isDeployed);
-      console.log('ETH Balance:', info.balance);
-      console.log('EntryPoint Deposit:', deposit);
+      console.log('=== Backend Calculation Result ===');
+      console.log('Predicted Address:', predictedAddress);
 
     } catch (err) {
       setError('Address calculation failed: ' + err.message);
       console.error('Address calculation error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 测试所有工厂地址
+  const testAllFactories = async () => {
+    if (!account || !provider || !currentNetwork) {
+      setError('Please connect wallet and ensure network is supported');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+      setMessage('Testing all factory addresses...');
+
+      const salt = getCurrentSalt();
+      const results = await testFactoryAddresses(account, salt, currentNetwork.chainId, provider);
+      
+      console.log('=== Factory Test Results ===');
+      console.log(results);
+      
+      // Display results
+      let resultMessage = 'Factory Test Results:\n\n';
+      for (const [name, result] of Object.entries(results)) {
+        if (result.success) {
+          resultMessage += `✅ ${name}:\n`;
+          resultMessage += `  Address: ${result.address}\n`;
+          resultMessage += `  Predicted: ${result.predictedAddress}\n`;
+          resultMessage += `  Same as factory: ${result.isSameAsFactory ? '❌ YES (Problem!)' : '✅ NO (Good)'}\n\n`;
+        } else {
+          resultMessage += `❌ ${name}: ${result.error}\n\n`;
+        }
+      }
+      
+      setMessage(resultMessage);
+      
+    } catch (err) {
+      setError('Factory testing failed: ' + err.message);
+      console.error('Factory testing error:', err);
     } finally {
       setLoading(false);
     }
@@ -400,12 +460,8 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
         setMessage(`✅ Transferred ${ethAmount} ETH to account`);
       }
 
-      // 刷新余额和账户信息
+      // 刷新余额
       await fetchBalances();
-      if (predictedAddress) {
-        const info = await getAccountInfo(account, getCurrentSalt(), currentNetwork.chainId, provider, selectedFactory);
-        setAccountInfo(info);
-      }
 
     } catch (err) {
       setError(`Transfer failed: ${err.message}`);
@@ -518,7 +574,7 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
                       onClick={() => {
                         const randomSalt = generateRandomSalt();
                         setCustomSalt(randomSalt);
-                        setMessage(`Random salt generated: ${randomSalt.substring(0, 10)}...`);
+                        setMessage(`Random salt generated: ${randomSalt.toString().substring(0, 10)}...`);
                       }}
                       className="random-salt-btn"
                     >
@@ -539,6 +595,9 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
               <div className="action-buttons">
                 <button type="button" onClick={calculateAddress} disabled={loading || !account} className="calc-btn">
                   🔍 Calculate Address
+                </button>
+                <button type="button" onClick={testAllFactories} disabled={loading || !account} className="test-btn">
+                  🧪 Test All Factories
                 </button>
                 <button type="button" onClick={compareFactories} disabled={loading || !account} className="compare-btn">
                   🔄 Compare All Factories
@@ -803,7 +862,7 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
                     <div className="account-info">
                       <p className="account-address">{acc.address}</p>
                       <p className="account-details">
-                        {acc.factoryName} • Salt: {formatAddress(acc.salt)} • {new Date(acc.createdAt).toLocaleDateString()}
+                        {acc.factoryName} • Salt: {acc.salt} • {new Date(acc.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="account-actions">

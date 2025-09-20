@@ -81,6 +81,34 @@ app.post('/mintPNTs', (req, res) => {
     }
 });
 
+// --- CALCULATE ACCOUNT ADDRESS ---
+app.post('/calculateAccountAddress', async (req, res) => {
+    const { owner, salt, factoryAddress } = req.body;
+    
+    try {
+        console.log(`Calculate account address request: owner=${owner}, salt=${salt}, factory=${factoryAddress}`);
+        
+        // Use the working factory with getCalculatedAddress function
+        const factoryAbi = [
+            "function getCalculatedAddress(address owner, uint256 salt) view returns (address)",
+            "function accountImplementation() view returns (address)"
+        ];
+        
+        const factoryContract = new ethers.Contract(factoryAddress, factoryAbi, provider);
+        const predictedAddress = await factoryContract.getCalculatedAddress(owner, salt);
+        
+        console.log(`Address calculated: ${predictedAddress}`);
+        res.status(200).json({ predictedAddress });
+        
+    } catch (error) {
+        console.error('Calculate address error:', error);
+        res.status(500).json({ 
+            error: 'Failed to calculate address',
+            details: error.reason || error.message 
+        });
+    }
+});
+
 app.listen(port, () => {
     console.log(`Backend server listening at http://localhost:${port}`);
 });
