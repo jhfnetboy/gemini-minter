@@ -313,42 +313,6 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
     }
   };
 
-  // 验证所有已知工厂地址
-  const validateAllFactories = async () => {
-    if (!provider) {
-      setError('Please connect wallet first');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError('');
-      setMessage('Validating factory addresses...');
-      
-      console.log('=== Factory Validation ===');
-      const results = await testAllKnownFactories(provider);
-      
-      setValidationResults(results);
-      setShowFactoryValidation(true);
-      
-      // 找到第一个有效的工厂
-      const working = results.find(r => r.valid);
-      if (working) {
-        setWorkingFactory(working);
-        setMessage(`✅ Found working factory: ${working.name}`);
-      } else {
-        setMessage('❌ No working factories found. Please check network or try different addresses.');
-      }
-      
-      console.log('Validation Results:', results);
-      
-    } catch (err) {
-      setError('Factory validation failed: ' + err.message);
-      console.error('Factory validation error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // 创建账户功能 - 借鉴老版本但增强错误处理
   const createAccount = async () => {
@@ -595,15 +559,6 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
               <div className="action-buttons">
                 <button type="button" onClick={calculateAddress} disabled={loading || !account} className="calc-btn">
                   🔍 Calculate Address
-                </button>
-                <button type="button" onClick={testAllFactories} disabled={loading || !account} className="test-btn">
-                  🧪 Test All Factories
-                </button>
-                <button type="button" onClick={compareFactories} disabled={loading || !account} className="compare-btn">
-                  🔄 Compare All Factories
-                </button>
-                <button type="button" onClick={validateAllFactories} disabled={loading} className="validate-btn">
-                  🔧 Validate Factory Addresses
                 </button>
               </div>
             </div>
