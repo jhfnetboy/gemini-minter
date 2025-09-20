@@ -1096,6 +1096,547 @@ contract MyceliumPaymaster is BasePaymaster {
 5. **灵活的经济模型**：动态费率 + 激励机制
 6. **完整的 Paymaster 实现**：基于开源的定制开发
 
+### 10.11 ERC-4337 合约账户工厂集成
+
+#### 10.11.1 调研结果：公开工厂合约地址
+
+**1. 官方 Simple Account Factory**
+```javascript
+// Sepolia 测试网 - v0.6
+const SIMPLE_ACCOUNT_FACTORY = "0x91E60e0613810449d098b0b5Ec8b51A0FE8c8985";
+
+// Mainnet
+const SIMPLE_ACCOUNT_FACTORY_MAINNET = "0x15Ba39375ee2Ab563E8873C8390be6F2E2F50232";
+```
+
+**2. Alchemy Light Account Factory**
+```javascript
+// Sepolia 测试网
+const ALCHEMY_LIGHT_ACCOUNT_FACTORY = "0x00004EC70002a32400f8ae005A26aeFe730D0A1E";
+
+// Mainnet - v1.1.0 (支持 EntryPoint v0.6)
+const ALCHEMY_LIGHT_ACCOUNT_FACTORY_MAINNET = "0x0000000000400CdFef5E2714E63d8040b700BC24";
+```
+
+**3. EntryPoint 合约地址**
+```javascript
+// ERC-4337 EntryPoint v0.6.0
+const ENTRYPOINT_V060 = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789";
+```
+
+#### 10.11.2 合约账户创建流程实现
+
+**前端界面设计：**
+```jsx
+// frontend/src/components/AccountCreator.jsx
+import { useState } from 'react';
+import { ethers } from 'ethers';
+
+const FACTORIES = {
+  simple: {
+    name: "Simple Account",
+    address: "0x91E60e0613810449d098b0b5Ec8b51A0FE8c8985", // v0.6
+    abi: SIMPLE_ACCOUNT_FACTORY_ABI
+  },
+  alchemy: {
+    name: "Alchemy Light Account",
+    address: "0x00004EC70002a32400f8ae005A26aeFe730D0A1E",
+    abi: ALCHEMY_LIGHT_ACCOUNT_ABI
+  }
+};
+
+export default function AccountCreator() {
+  const [privateKey, setPrivateKey] = useState('');
+  const [selectedFactory, setSelectedFactory] = useState('simple');
+  const [predictedAddress, setPredictedAddress] = useState('');
+  const [txHash, setTxHash] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [balance, setBalance] = useState('0');
+
+  const checkBalance = async () => {
+    if (!privateKey) return;
+    const wallet = new ethers.Wallet(privateKey);
+    const provider = new ethers.JsonRpcProvider(process.env.REACT_APP_SEPOLIA_RPC_URL);
+    const balance = await provider.getBalance(wallet.address);
+    setBalance(ethers.formatEther(balance));
+  };
+
+  const calculateAddress = async () => {
+    if (!privateKey) return;
+
+    const wallet = new ethers.Wallet(privateKey);
+    const factory = FACTORIES[selectedFactory];
+
+    // CREATE2 地址计算
+    const salt = ethers.keccak256(ethers.toUtf8Bytes(wallet.address));
+    const initCode = ethers.concat([
+      factory.address,
+      ethers.AbiCoder.defaultAbiCoder().encode(
+        ["address", "uint256"],
+        [wallet.address, 0] // owner, salt
+      )
+    ]);
+
+    const address = ethers.getCreate2Address(
+      factory.address,
+      salt,
+      ethers.keccak256(initCode)
+    );
+
+    setPredictedAddress(address);
+  };
+
+  const createAccount = async () => {
+    if (!privateKey || !predictedAddress || parseFloat(balance) < 0.01) {
+      alert('请确保私钥有效且账户有足够的ETH余额');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const provider = new ethers.JsonRpcProvider(process.env.REACT_APP_SEPOLIA_RPC_URL);
+      const wallet = new ethers.Wallet(privateKey, provider);
+      const factory = new ethers.Contract(
+        FACTORIES[selectedFactory].address,
+        FACTORIES[selectedFactory].abi,
+        wallet
+      );
+
+      // 调用工厂合约的 createAccount 函数
+      const tx = await factory.createAccount(wallet.address, 0, {
+        gasLimit: 500000
+      });
+
+      setTxHash(tx.hash);
+      await tx.wait();
+
+      console.log('Account created:', predictedAddress);
+      console.log('Transaction:', `https://sepolia.etherscan.io/tx/${tx.hash}`);
+
+    } catch (error) {
+      console.error('Account creation failed:', error);
+      alert('账户创建失败: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="account-creator">
+      <h3>🚀 创建 ERC-4337 合约账户</h3>
+
+      <div className="form-group">
+        <label>🔐 私钥：</label>
+        <input
+          type="password"
+          value={privateKey}
+          onChange={(e) => setPrivateKey(e.target.value)}
+          placeholder="输入你的私钥..."
+        />
+        <button onClick={checkBalance} disabled={!privateKey}>
+          检查余额
+        </button>
+        {balance && <span>余额：{balance} ETH</span>}
+        <small>⚠️ 请确保私钥安全，此功能仅用于测试</small>
+      </div>
+
+      <div className="form-group">
+        <label>🏭 选择工厂合约：</label>
+        <select
+          value={selectedFactory}
+          onChange={(e) => setSelectedFactory(e.target.value)}
+        >
+          <option value="simple">📋 官方 Simple Account</option>
+          <option value="alchemy">⚡ Alchemy Light Account</option>
+        </select>
+      </div>
+
+      <button onClick={calculateAddress} disabled={!privateKey}>
+        🔍 计算预估地址
+      </button>
+
+      {predictedAddress && (
+        <div className="address-preview">
+          <h4>🎯 预估合约地址：</h4>
+          <p className="address">{predictedAddress}</p>
+          <a
+            href={`https://sepolia.etherscan.io/address/${predictedAddress}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            📊 查看 Etherscan
+          </a>
+        </div>
+      )}
+
+      <button
+        onClick={createAccount}
+        disabled={!predictedAddress || loading || parseFloat(balance) < 0.01}
+        className="create-btn"
+      >
+        {loading ? '⏳ 创建中...' : '🚀 创建合约账户'}
+      </button>
+
+      {txHash && (
+        <div className="transaction-result">
+          <h4>✅ 交易已发送：</h4>
+          <a
+            href={`https://sepolia.etherscan.io/tx/${txHash}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            🔗 查看交易详情
+          </a>
+        </div>
+      )}
+
+      <div className="info-section">
+        <h4>ℹ️ 使用说明</h4>
+        <ul>
+          <li>需要至少 0.01 ETH 作为部署费用</li>
+          <li>合约地址通过 CREATE2 确定性计算</li>
+          <li>支持 Sepolia 测试网</li>
+          <li>创建后可用于 gas 赞助交易</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+```
+
+#### 10.11.3 CREATE2 地址计算实现
+
+**精确的地址计算逻辑：**
+```javascript
+// frontend/src/utils/accountUtils.js
+import { ethers } from 'ethers';
+
+export function calculateSimpleAccountAddress(ownerAddress, factoryAddress, salt = 0) {
+  // Simple Account 的初始化代码
+  const initCode = ethers.concat([
+    factoryAddress,
+    ethers.AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256"],
+      [ownerAddress, salt]
+    )
+  ]);
+
+  // 使用固定的 salt 确保确定性
+  const saltBytes = ethers.zeroPadValue(ethers.toBeHex(salt), 32);
+
+  const address = ethers.getCreate2Address(
+    factoryAddress,
+    saltBytes,
+    ethers.keccak256(initCode)
+  );
+
+  return address;
+}
+
+export function calculateAlchemyAccountAddress(ownerAddress, factoryAddress, salt = 0) {
+  // Alchemy Light Account 的初始化代码
+  const initCode = ethers.concat([
+    factoryAddress,
+    ethers.AbiCoder.defaultAbiCoder().encode(
+      ["address", "uint256"],
+      [ownerAddress, salt]
+    )
+  ]);
+
+  const saltBytes = ethers.zeroPadValue(ethers.toBeHex(salt), 32);
+
+  const address = ethers.getCreate2Address(
+    factoryAddress,
+    saltBytes,
+    ethers.keccak256(initCode)
+  );
+
+  return address;
+}
+
+export function getFactoryConfig(network = 'sepolia') {
+  const configs = {
+    sepolia: {
+      simple: {
+        address: "0x91E60e0613810449d098b0b5Ec8b51A0FE8c8985", // v0.6
+        name: "Simple Account Factory"
+      },
+      alchemy: {
+        address: "0x00004EC70002a32400f8ae005A26aeFe730D0A1E",
+        name: "Alchemy Light Account Factory"
+      },
+      entryPoint: "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
+    },
+    mainnet: {
+      simple: {
+        address: "0x15Ba39375ee2Ab563E8873C8390be6F2E2F50232",
+        name: "Simple Account Factory"
+      },
+      alchemy: {
+        address: "0x0000000000400CdFef5E2714E63d8040b700BC24", // v1.1.0
+        name: "Alchemy Light Account Factory"
+      },
+      entryPoint: "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
+    }
+  };
+
+  return configs[network] || configs.sepolia;
+}
+```
+
+#### 10.11.4 后端部署 API
+
+**完整的账户创建 API：**
+```javascript
+// backend/routes/account.js
+const express = require('express');
+const { ethers } = require('ethers');
+const router = express.Router();
+
+// 工厂合约 ABI
+const SIMPLE_ACCOUNT_FACTORY_ABI = [
+  "function createAccount(address owner, uint256 salt) returns (address)",
+  "function getAddress(address owner, uint256 salt) view returns (address)"
+];
+
+const ALCHEMY_LIGHT_ACCOUNT_ABI = [
+  "function createAccount(address owner, uint256 salt) returns (address)",
+  "function getAddress(address owner, uint256 salt) view returns (address)"
+];
+
+// 网络配置
+const NETWORK_CONFIGS = {
+  sepolia: {
+    rpcUrl: process.env.SEPOLIA_RPC_URL,
+    factories: {
+      simple: "0x91E60e0613810449d098b0b5Ec8b51A0FE8c8985", // v0.6
+      alchemy: "0x00004EC70002a32400f8ae005A26aeFe730D0A1E"
+    }
+  },
+  mainnet: {
+    rpcUrl: process.env.MAINNET_RPC_URL,
+    factories: {
+      simple: "0x15Ba39375ee2Ab563E8873C8390be6F2E2F50232",
+      alchemy: "0x0000000000400CdFef5E2714E63d8040b700BC24" // v1.1.0
+    }
+  }
+};
+
+// 预测地址
+router.post('/predict', async (req, res) => {
+  try {
+    const { privateKey, factoryType, network = 'sepolia' } = req.body;
+
+    if (!privateKey) {
+      return res.status(400).json({ error: 'Private key is required' });
+    }
+
+    const wallet = new ethers.Wallet(privateKey);
+    const config = NETWORK_CONFIGS[network];
+
+    if (!config) {
+      return res.status(400).json({ error: 'Unsupported network' });
+    }
+
+    const factoryAddress = config.factories[factoryType];
+    if (!factoryAddress) {
+      return res.status(400).json({ error: 'Unsupported factory type' });
+    }
+
+    // 计算预估地址
+    const salt = 0; // 使用固定 salt 确保确定性
+    const predictedAddress = await getPredictedAddress(
+      wallet.address,
+      factoryAddress,
+      salt,
+      factoryType,
+      config.rpcUrl
+    );
+
+    res.json({
+      success: true,
+      address: predictedAddress,
+      etherscanUrl: `https://${network}.etherscan.io/address/${predictedAddress}`
+    });
+
+  } catch (error) {
+    console.error('Address prediction error:', error);
+    res.status(500).json({
+      error: 'Address prediction failed',
+      details: error.message
+    });
+  }
+});
+
+// 创建账户
+router.post('/create', async (req, res) => {
+  try {
+    const { privateKey, factoryType, network = 'sepolia' } = req.body;
+
+    if (!privateKey) {
+      return res.status(400).json({ error: 'Private key is required' });
+    }
+
+    const config = NETWORK_CONFIGS[network];
+    if (!config) {
+      return res.status(400).json({ error: 'Unsupported network' });
+    }
+
+    const provider = new ethers.JsonRpcProvider(config.rpcUrl);
+    const wallet = new ethers.Wallet(privateKey, provider);
+
+    // 检查余额
+    const balance = await provider.getBalance(wallet.address);
+    const minBalance = ethers.parseEther('0.01'); // 最少 0.01 ETH
+
+    if (balance < minBalance) {
+      return res.status(400).json({
+        error: 'Insufficient balance',
+        required: '0.01 ETH',
+        current: ethers.formatEther(balance)
+      });
+    }
+
+    const factoryAddress = config.factories[factoryType];
+    if (!factoryAddress) {
+      return res.status(400).json({ error: 'Unsupported factory type' });
+    }
+
+    // 获取ABI
+    const abi = factoryType === 'simple' ? SIMPLE_ACCOUNT_FACTORY_ABI : ALCHEMY_LIGHT_ACCOUNT_ABI;
+    const factory = new ethers.Contract(factoryAddress, abi, wallet);
+
+    // 计算预估地址
+    const salt = 0;
+    const predictedAddress = await factory.getAddress(wallet.address, salt);
+
+    // 检查账户是否已存在
+    const code = await provider.getCode(predictedAddress);
+    if (code !== '0x') {
+      return res.json({
+        success: true,
+        address: predictedAddress,
+        message: 'Account already exists',
+        etherscanUrl: `https://${network}.etherscan.io/address/${predictedAddress}`
+      });
+    }
+
+    // 创建账户
+    console.log(`Creating ${factoryType} account for ${wallet.address}...`);
+    const tx = await factory.createAccount(wallet.address, salt, {
+      gasLimit: 1000000
+    });
+
+    console.log(`Transaction sent: ${tx.hash}`);
+    const receipt = await tx.wait();
+
+    res.json({
+      success: true,
+      address: predictedAddress,
+      txHash: tx.hash,
+      gasUsed: receipt.gasUsed.toString(),
+      etherscanUrl: `https://${network}.etherscan.io/address/${predictedAddress}`,
+      txEtherscanUrl: `https://${network}.etherscan.io/tx/${tx.hash}`
+    });
+
+  } catch (error) {
+    console.error('Account creation error:', error);
+    res.status(500).json({
+      error: 'Account creation failed',
+      details: error.message
+    });
+  }
+});
+
+// 检查账户状态
+router.post('/check', async (req, res) => {
+  try {
+    const { address, network = 'sepolia' } = req.body;
+
+    if (!address || !ethers.isAddress(address)) {
+      return res.status(400).json({ error: 'Invalid address' });
+    }
+
+    const config = NETWORK_CONFIGS[network];
+    if (!config) {
+      return res.status(400).json({ error: 'Unsupported network' });
+    }
+
+    const provider = new ethers.JsonRpcProvider(config.rpcUrl);
+
+    // 检查代码是否存在
+    const code = await provider.getCode(address);
+    const exists = code !== '0x';
+
+    // 获取余额
+    const balance = await provider.getBalance(address);
+
+    res.json({
+      success: true,
+      address,
+      exists,
+      balance: ethers.formatEther(balance),
+      etherscanUrl: `https://${network}.etherscan.io/address/${address}`
+    });
+
+  } catch (error) {
+    console.error('Account check error:', error);
+    res.status(500).json({
+      error: 'Account check failed',
+      details: error.message
+    });
+  }
+});
+
+module.exports = router;
+
+// 辅助函数
+async function getPredictedAddress(owner, factory, salt, factoryType, rpcUrl) {
+  const provider = new ethers.JsonRpcProvider(rpcUrl);
+  const abi = factoryType === 'simple' ? SIMPLE_ACCOUNT_FACTORY_ABI : ALCHEMY_LIGHT_ACCOUNT_ABI;
+  const contract = new ethers.Contract(factory, abi, provider);
+
+  return await contract.getAddress(owner, salt);
+}
+```
+
+#### 10.11.5 安全和用户体验优化
+
+**1. 私钥安全处理：**
+- 前端不持久化存储私钥
+- 使用 HTTPS 传输
+- 添加密码验证步骤
+- 显示安全警告
+
+**2. 实时状态反馈：**
+- 余额实时检查
+- Gas 费用估算
+- 部署进度指示
+- 错误状态明确提示
+
+**3. 多网络支持：**
+- Sepolia 测试网默认
+- 主网选项（带警告）
+- 网络切换确认
+
+**4. 部署验证：**
+- 地址预览功能
+- 交易确认等待
+- 部署结果验证
+- 失败情况处理
+
+### 10.12 最终总结
+
+通过集成公开的工厂合约，我们的方案实现了：
+
+1. **真正的原子操作**：确保资金安全
+2. **精确的成本控制**：37,040 gas/笔的可预测成本
+3. **完善的用户体验**：紧急解锁 + 状态查询 + 账户创建
+4. **强大的安全保障**：多重签名 + 监控告警
+5. **灵活的经济模型**：动态费率 + 激励机制
+6. **完整的 Paymaster 实现**：基于开源的定制开发
+7. **合约账户工厂集成**：支持 Simple Account 和 Alchemy Light Account 的完整创建流程
+
 
 -----
 再次计算批量分摊成本：
