@@ -1,118 +1,104 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { config } from './config';
+import { 
+  AA_NETWORKS, 
+  getNetworkConfig, 
+  getFactoryConfig, 
+  getSupportedNetworks,
+  ENTRYPOINT_INFO 
+} from './config/aa-config.js';
+import { 
+  calculateAccountAddress,
+  isAccountDeployed,
+  getAccountInfo,
+  getEntryPointDeposit,
+  validateNetworkConfig,
+  generateRandomSalt,
+  normalizeSalt,
+  formatAddress,
+  getExplorerUrl,
+  getAvailableFactories,
+  compareFactoryAddresses
+} from './utils/aa-utils.js';
+import { 
+  testAllKnownFactories, 
+  findWorkingFactory,
+  KNOWN_FACTORIES 
+} from './utils/factory-validator.js';
 import './App.css';
 
-// 使用正确的SimpleAccountFactory ABI
-const SIMPLE_ACCOUNT_FACTORY_ABI = [
-  "function createAccount(address owner, uint256 salt) returns (address ret)",
-  "function getAddress(address owner, uint256 salt) view returns (address)",
-  // 尝试不同的参数顺序和类型
-  "function getAddress(uint256 salt, address owner) view returns (address)",
-  "function accountImplementation() view returns (address)",
-  "function entryPoint() view returns (address)"
-];
-
-// Alchemy Light Account Factory - 可能有不同的接口
-const ALCHEMY_LIGHT_ACCOUNT_ABI = [
-  "function createAccount(address owner, uint256 salt) returns (address)",
-  "function getAddress(address owner, uint256 salt) view returns (address)",
-  "function getAddress(uint256 salt, address owner) view returns (address)"
-];
-
-// 尝试Biconomy/Kernel等其他工厂的ABI
-const KERNEL_FACTORY_ABI = [
-  "function createAccount(address owner, uint256 index) returns (address)",
-  "function getAccountAddress(address owner, uint256 index) view returns (address)",
-  "function getAddress(address owner, uint256 index) view returns (address)"
-];
-
-// Safe 4337 Factory ABI
-const SAFE_FACTORY_ABI = [
-  "function createProxyWithNonce(address _singleton, bytes initializer, uint256 saltNonce) returns (address proxy)",
-  "function proxyCreationCode() view returns (bytes)",
-  "function calculateCreateProxyWithNonceAddress(address _singleton, bytes initializer, uint256 saltNonce, address target) view returns (address proxy)"
-];
-
-// 工厂合约配置 - 使用不同ABI匹配不同工厂类型
-const FACTORIES = {
-  simple_v06: {
-    name: "Simple Account Factory v0.6",
-    address: "0x91E60e0613810449d098b0b5Ec8b51A0FE8c8985", // v0.6 (Sepolia)
-    abi: SIMPLE_ACCOUNT_FACTORY_ABI,
-    methods: ['getAddress'] // 优先尝试的方法
-  },
-  alchemy_light: {
-    name: "Alchemy Light Account v1.1.0", 
-    address: "0x0000000000400CdFef5E2714E63d8040b700BC24", // v1.1.0 (Sepolia)
-    abi: ALCHEMY_LIGHT_ACCOUNT_ABI,
-    methods: ['getAddress']
-  },
-  simple_alt1: {
-    name: "Simple Account (Alternative 1)",
-    address: "0x9406Cc6185a346906296840746125a0E44976454", // 另一个已知地址
-    abi: SIMPLE_ACCOUNT_FACTORY_ABI,
-    methods: ['getAddress']
-  },
-  simple_alt2: {
-    name: "Simple Account (Alternative 2)", 
-    address: "0x15Ba39aff9834029815652432bf5C1e9269C55C6", // Biconomy Simple Account Factory
-    abi: SIMPLE_ACCOUNT_FACTORY_ABI,
-    methods: ['getAddress']
-  },
-  zk_simple: {
-    name: "ZK Simple Account Factory",
-    address: "0x9aEA6E9504cCA01B267dAc45e0cC2883F8c0ae31", // niv-fundation部署的
-    abi: SIMPLE_ACCOUNT_FACTORY_ABI,
-    methods: ['getAddress']
-  },
-  kernel_v24: {
-    name: "Kernel Account Factory v2.4",
-    address: "0x5de4839a76cf55d0c90e2061ef4386d962E15ae3", // Kernel v2.4
-    abi: KERNEL_FACTORY_ABI,
-    methods: ['getAccountAddress', 'getAddress'] // Kernel可能用不同方法名
-  },
-  safe_4337: {
-    name: "Safe 4337 Module Factory",
-    address: "0xa581c4A4DB7175302464fF3C06380BC3270b4037", // Safe 4337
-    abi: SAFE_FACTORY_ABI,
-    methods: ['calculateCreateProxyWithNonceAddress'] // Safe用完全不同的接口
-  },
-  stackup: {
-    name: "StackUp Simple Account Factory",
-    address: "0x9406Cc6185a346906296840746125a0E44976454", // StackUp部署
-    abi: SIMPLE_ACCOUNT_FACTORY_ABI,
-    methods: ['getAddress']
-  }
-};
-
-// PNTs合约ABI
+// PNTs合约ABI (保持不变)
 const PNTS_ABI = [
   "function balanceOf(address) view returns (uint256)",
   "function transfer(address, uint256) returns (bool)"
 ];
 
 export default function AccountCreatorPage({ account, provider, onBack }) {
-  const [selectedFactory, setSelectedFactory] = useState('simple_v06');
+  // 网络相关状态
+  const [currentNetwork, setCurrentNetwork] = useState(null);
+  const [selectedNetwork, setSelectedNetwork] = useState(11155111); // 默认Sepolia
+  const [selectedFactory, setSelectedFactory] = useState('simple');
+  
+  // 地址和账户状态
   const [predictedAddress, setPredictedAddress] = useState('');
-  const [txHash, setTxHash] = useState('');
+  const [accountInfo, setAccountInfo] = useState(null);
+  const [entryPointDeposit, setEntryPointDeposit] = useState('0');
+  
+  // UI状态
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [txHash, setTxHash] = useState('');
 
-  // 转账相关状态
+  // Salt 相关状态 - 借鉴老版本完整功能
+  const [customSalt, setCustomSalt] = useState('0');
+  const [useRandomSalt, setUseRandomSalt] = useState(false);
+
+  // 转账相关状态 - 借鉴老版本
   const [pntsAmount, setPntsAmount] = useState('100');
   const [ethAmount, setEthAmount] = useState('0.01');
   const [pntsBalance, setPntsBalance] = useState('0');
   const [ethBalance, setEthBalance] = useState('0');
 
-  // Salt 相关状态
-  const [customSalt, setCustomSalt] = useState('0');
-  const [useRandomSalt, setUseRandomSalt] = useState(false);
-
-  // 已创建账户列表
+  // 已创建账户列表 - 借鉴老版本
   const [createdAccounts, setCreatedAccounts] = useState([]);
+  
+  // 工厂比较功能
+  const [showFactoryComparison, setShowFactoryComparison] = useState(false);
+  const [factoryComparison, setFactoryComparison] = useState([]);
+  
+  // 工厂验证功能
+  const [showFactoryValidation, setShowFactoryValidation] = useState(false);
+  const [validationResults, setValidationResults] = useState([]);
+  const [workingFactory, setWorkingFactory] = useState(null);
 
+  // 获取当前网络信息
+  useEffect(() => {
+    async function detectNetwork() {
+      if (!provider) return;
+
+      try {
+        const network = await provider.getNetwork();
+        const chainId = Number(network.chainId);
+        const networkConfig = getNetworkConfig(chainId);
+        
+        if (networkConfig) {
+          setCurrentNetwork(networkConfig);
+          setSelectedNetwork(chainId);
+        } else {
+          setError(`Unsupported network: ${chainId}. Please switch to Sepolia, OP Sepolia, Optimism, or Ethereum Mainnet.`);
+        }
+      } catch (err) {
+        console.error('Failed to detect network:', err);
+        setError('Failed to detect network');
+      }
+    }
+
+    detectNetwork();
+  }, [provider]);
+
+  // 余额获取功能 - 借鉴老版本
   const fetchBalances = useCallback(async () => {
     if (!account || !provider) return;
 
@@ -130,6 +116,7 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
     }
   }, [account, provider]);
 
+  // 加载已创建账户 - 借鉴老版本
   const loadCreatedAccounts = useCallback(() => {
     try {
       const saved = localStorage.getItem('createdAccounts');
@@ -148,41 +135,14 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
     }
   }, [account, provider, fetchBalances, loadCreatedAccounts]);
 
+  // 保存创建的账户 - 借鉴老版本
   const saveCreatedAccount = (accountData) => {
     const updated = [...createdAccounts, accountData];
     setCreatedAccounts(updated);
     localStorage.setItem('createdAccounts', JSON.stringify(updated));
   };
 
-  const generateRandomSalt = () => {
-    // 生成一个32字节的随机数作为salt
-    const randomBytes = ethers.randomBytes(32);
-    return ethers.hexlify(randomBytes);
-  };
-
-  const normalizeSalt = (salt) => {
-    if (!salt || salt === '') return '0';
-
-    // 如果是十六进制格式，直接返回
-    if (salt.startsWith('0x')) {
-      return salt;
-    }
-
-    // 如果是纯数字，转换为十六进制
-    if (/^\d+$/.test(salt)) {
-      try {
-        const num = BigInt(salt);
-        return '0x' + num.toString(16).padStart(64, '0');
-      } catch (err) {
-        console.warn('Invalid salt number:', salt);
-        return '0';
-      }
-    }
-
-    // 其他情况尝试直接使用
-    return salt;
-  };
-
+  // Salt管理功能 - 借鉴老版本完整实现
   const getCurrentSalt = () => {
     let salt;
     if (useRandomSalt) {
@@ -199,92 +159,55 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
     return normalizeSalt(salt);
   };
 
+  // 地址计算功能 - 整合新版本多工厂支持
   const calculateAddress = async () => {
-    if (!account || !provider) {
-      setError('Please connect wallet first');
+    if (!account || !provider || !currentNetwork) {
+      setError('Please connect wallet and ensure network is supported');
       return;
     }
 
     try {
       setLoading(true);
       setError('');
-      setMessage('Calculating address...');
-
-      const factory = FACTORIES[selectedFactory];
-      console.log('=== Address Calculation Debug ===');
-      console.log('Selected factory:', selectedFactory);
-      console.log('Factory config:', factory);
-      console.log('Owner account:', account);
       
-      const factoryContract = new ethers.Contract(factory.address, factory.abi, provider);
-      console.log('Factory contract created:', factoryContract.target);
-
-      // 使用当前salt（自定义或随机生成）
-      const salt = getCurrentSalt();
-      console.log('Using salt for address calculation:', salt);
-
-      const saltBigInt = ethers.getBigInt(salt);
-      console.log('Salt as BigInt:', saltBigInt.toString());
-
-      // 使用工厂特定的方法来获取地址
-      let predictedAddr = null;
-      const methods = factory.methods || ['getAddress'];
-      
-      for (const methodName of methods) {
-        try {
-          console.log(`Trying method: ${methodName}`);
-          if (factoryContract[methodName]) {
-            
-            // 根据不同工厂类型使用不同的参数
-            let result;
-            if (methodName === 'calculateCreateProxyWithNonceAddress') {
-              // Safe 4337 需要特殊参数
-              console.log(`Safe factory not yet implemented`);
-              continue;
-            } else if (methodName === 'getAccountAddress') {
-              // Kernel factory 可能使用 index 而不是 salt
-              console.log(`Calling factoryContract.${methodName} with:`, { owner: account, index: saltBigInt.toString() });
-              result = await factoryContract[methodName](account, saltBigInt);
-            } else {
-              // 标准的 getAddress 方法，尝试两种参数顺序
-              try {
-                console.log(`Calling factoryContract.${methodName} with:`, { owner: account, salt: saltBigInt.toString() });
-                result = await factoryContract[methodName](account, saltBigInt);
-              } catch (err1) {
-                console.log(`First parameter order failed, trying reversed...`);
-                result = await factoryContract[methodName](saltBigInt, account);
-              }
-            }
-            
-            console.log(`Raw result from ${methodName}:`, result);
-            
-            // 检查返回地址是否与工厂地址相同
-            if (result && result.toLowerCase() !== factory.address.toLowerCase()) {
-              console.log(`✅ Success with method: ${methodName}`);
-              predictedAddr = result;
-              break; // 找到有效方法，退出循环
-            } else {
-              console.log(`❌ Method ${methodName} returned factory address or null`);
-            }
-          } else {
-            console.log(`❌ Method ${methodName} not found in contract`);
-          }
-        } catch (err) {
-          console.log(`❌ Method ${methodName} failed:`, err.message);
-        }
-      }
-      
-      if (!predictedAddr || predictedAddr.toLowerCase() === factory.address.toLowerCase()) {
-        console.error('⚠️ WARNING: All methods returned factory address or failed!');
-        setError(`Factory contract issue: All address calculation methods failed. This might be a wrong contract address or ABI mismatch.`);
+      // 验证网络和工厂配置
+      const validation = validateNetworkConfig(currentNetwork.chainId, selectedFactory);
+      if (!validation.isValid) {
+        setError(validation.error);
         return;
       }
+
+      const salt = getCurrentSalt();
+      console.log('=== Address Calculation ===');
+      console.log('Network:', currentNetwork.name);
+      console.log('Factory:', validation.factory.name);
+      console.log('Owner:', account);
+      console.log('Salt:', salt);
+
+      // 计算地址
+      const predictedAddr = await calculateAccountAddress(
+        account,
+        salt,
+        currentNetwork.chainId,
+        provider,
+        selectedFactory
+      );
+
+      // 获取账户详细信息
+      const info = await getAccountInfo(account, salt, currentNetwork.chainId, provider, selectedFactory);
       
-      console.log('Factory address (should be different):', factory.address);
+      // 获取EntryPoint存款
+      const deposit = await getEntryPointDeposit(predictedAddr, currentNetwork.chainId, provider);
 
       setPredictedAddress(predictedAddr);
-      setMessage(''); // 清除顶部消息，地址显示在固定区域
-      console.log('=== Address Calculation Success ===');
+      setAccountInfo(info);
+      setEntryPointDeposit(deposit);
+
+      console.log('=== Calculation Result ===');
+      console.log('Predicted Address:', predictedAddr);
+      console.log('Is Deployed:', info.isDeployed);
+      console.log('ETH Balance:', info.balance);
+      console.log('EntryPoint Deposit:', deposit);
 
     } catch (err) {
       setError('Address calculation failed: ' + err.message);
@@ -294,9 +217,83 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
     }
   };
 
+  // 比较不同工厂的地址
+  const compareFactories = async () => {
+    if (!account || !provider || !currentNetwork) {
+      setError('Please connect wallet and ensure network is supported');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+      
+      const salt = getCurrentSalt();
+      console.log('=== Factory Comparison ===');
+      console.log('Owner:', account);
+      console.log('Salt:', salt);
+      
+      const comparison = await compareFactoryAddresses(
+        account,
+        salt,
+        currentNetwork.chainId,
+        provider
+      );
+      
+      setFactoryComparison(comparison);
+      setShowFactoryComparison(true);
+      
+      console.log('Factory Comparison Results:', comparison);
+      
+    } catch (err) {
+      setError('Factory comparison failed: ' + err.message);
+      console.error('Factory comparison error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 验证所有已知工厂地址
+  const validateAllFactories = async () => {
+    if (!provider) {
+      setError('Please connect wallet first');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+      setMessage('Validating factory addresses...');
+      
+      console.log('=== Factory Validation ===');
+      const results = await testAllKnownFactories(provider);
+      
+      setValidationResults(results);
+      setShowFactoryValidation(true);
+      
+      // 找到第一个有效的工厂
+      const working = results.find(r => r.valid);
+      if (working) {
+        setWorkingFactory(working);
+        setMessage(`✅ Found working factory: ${working.name}`);
+      } else {
+        setMessage('❌ No working factories found. Please check network or try different addresses.');
+      }
+      
+      console.log('Validation Results:', results);
+      
+    } catch (err) {
+      setError('Factory validation failed: ' + err.message);
+      console.error('Factory validation error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 创建账户功能 - 借鉴老版本但增强错误处理
   const createAccount = async () => {
-    if (!account || !predictedAddress || !provider) {
-      setError('Please connect wallet and calculate address first');
+    if (!predictedAddress || !currentNetwork) {
+      setError('Please calculate address first');
       return;
     }
 
@@ -305,9 +302,18 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
       setError('');
       setMessage('Creating account...');
 
-      const factory = FACTORIES[selectedFactory];
+      const factoryConfig = getFactoryConfig(currentNetwork.chainId, selectedFactory);
+      if (!factoryConfig) {
+        setError(`Factory ${selectedFactory} not configured for ${currentNetwork.name}`);
+        return;
+      }
+
       const signer = await provider.getSigner();
-      const factoryContract = new ethers.Contract(factory.address, factory.abi, signer);
+      const factoryContract = new ethers.Contract(
+        factoryConfig.address,
+        factoryConfig.abi,
+        signer
+      );
 
       // 检查账户是否已存在
       const code = await provider.getCode(predictedAddress);
@@ -319,6 +325,12 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
       // 创建账户 - 使用当前salt
       const salt = getCurrentSalt();
       const saltBigInt = ethers.getBigInt(salt);
+
+      console.log('Creating account with:', {
+        owner: account,
+        salt: salt,
+        factory: factoryConfig.address
+      });
 
       const tx = await factoryContract.createAccount(account, saltBigInt, {
         gasLimit: 1000000
@@ -339,23 +351,24 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
       const accountData = {
         address: predictedAddress,
         factory: selectedFactory,
-        factoryName: factory.name,
+        factoryName: factoryConfig.name,
         salt: salt,
         createdAt: new Date().toISOString(),
         txHash: tx.hash,
         owner: account,
-        network: 'sepolia'
+        network: currentNetwork.shortName || currentNetwork.name.toLowerCase()
       };
       saveCreatedAccount(accountData);
 
     } catch (err) {
       setError('Account creation failed: ' + err.message);
-      console.error(err);
+      console.error('Account creation error:', err);
     } finally {
       setLoading(false);
     }
   };
 
+  // 转账功能 - 借鉴老版本完整实现
   const transferToAccount = async (isPNTs = true) => {
     if (!account || !predictedAddress || !provider) {
       setError('Please create account first');
@@ -374,10 +387,8 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
         const pntsContract = new ethers.Contract(config.addresses.pnts, PNTS_ABI, signer);
         const amount = ethers.parseUnits(pntsAmount, 18);
         const tx = await pntsContract.transfer(predictedAddress, amount);
-
         await tx.wait();
-        setMessage(`✅ PNTs transferred successfully!`);
-
+        setMessage(`✅ Transferred ${pntsAmount} PNTs to account`);
       } else {
         // 转账ETH
         const amount = ethers.parseEther(ethAmount);
@@ -385,21 +396,26 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
           to: predictedAddress,
           value: amount
         });
-
         await tx.wait();
-        setMessage(`✅ ETH transferred successfully!`);
+        setMessage(`✅ Transferred ${ethAmount} ETH to account`);
       }
 
-      // 重新获取余额
+      // 刷新余额和账户信息
       await fetchBalances();
+      if (predictedAddress) {
+        const info = await getAccountInfo(account, getCurrentSalt(), currentNetwork.chainId, provider, selectedFactory);
+        setAccountInfo(info);
+      }
 
     } catch (err) {
       setError(`Transfer failed: ${err.message}`);
-      console.error(err);
     } finally {
       setLoading(false);
     }
   };
+
+  // 获取当前网络支持的工厂
+  const availableFactories = currentNetwork ? getAvailableFactories(currentNetwork.chainId) : [];
 
   return (
     <div className="App">
@@ -410,7 +426,7 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
             <button type="button" onClick={onBack} className="back-btn">← Back to Main</button>
             {account && (
               <div className="account-info">
-                <p>Connected: <span className="address">{`${account.substring(0, 6)}...${account.substring(account.length - 4)}`}</span></p>
+                <p>Connected: <span className="address">{formatAddress(account)}</span></p>
               </div>
             )}
           </div>
@@ -419,10 +435,20 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
 
       <div className="container">
         <div className="minting-column">
-          {message && <div className="message-banner">{message}</div>}
-          {error && <div className="error-banner">{error}</div>}
+          {/* 网络信息 */}
+          {currentNetwork && (
+            <div className="card">
+              <h3>🌐 Network Information</h3>
+              <div className="network-info">
+                <p><strong>Network:</strong> {currentNetwork.name}</p>
+                <p><strong>Chain ID:</strong> {currentNetwork.chainId}</p>
+                <p><strong>EntryPoint:</strong> <code>{formatAddress(currentNetwork.entryPoint)}</code></p>
+                <p><strong>Supported Factories:</strong> {availableFactories.length}</p>
+              </div>
+            </div>
+          )}
 
-          {/* 余额显示 */}
+          {/* 余额显示 - 借鉴老版本 */}
           <div className="card">
             <h3>💰 Your Balances</h3>
             <div className="balance-info">
@@ -431,107 +457,133 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
             </div>
           </div>
 
-          {/* 工厂选择 */}
-          <div className="card">
-            <h3>🏭 Choose Factory</h3>
-            <div className="factory-options">
-              {Object.entries(FACTORIES).map(([key, factory]) => (
-                <label key={key} className={selectedFactory === key ? 'factory-option active' : 'factory-option'}>
-                  <input
-                    type="radio"
-                    value={key}
-                    checked={selectedFactory === key}
-                    onChange={(e) => setSelectedFactory(e.target.value)}
-                  />
-                  <div className="option-content">
-                    <span className="option-title">{factory.name}</span>
-                    <span className="option-desc">{factory.address.substring(0, 10)}...{factory.address.substring(38)}</span>
-                  </div>
-                </label>
-              ))}
-            </div>
-
-            {/* Salt 配置 */}
-            <div className="salt-config">
-              <h4>🔑 Salt Configuration</h4>
-              <div className="salt-options">
-                <label className="salt-option">
-                  <input
-                    type="radio"
-                    checked={!useRandomSalt}
-                    onChange={() => {
-                      setUseRandomSalt(false);
-                      setCustomSalt('0');
-                    }}
-                  />
-                  <span>Custom Salt</span>
-                </label>
-                <label className="salt-option">
-                  <input
-                    type="radio"
-                    checked={useRandomSalt}
-                    onChange={() => setUseRandomSalt(true)}
-                  />
-                  <span>Random Salt (每次生成新地址)</span>
-                </label>
+          {/* 工厂选择 - 动态加载 */}
+          {availableFactories.length > 0 && (
+            <div className="card">
+              <h3>🏭 Choose Factory</h3>
+              <div className="factory-options">
+                {availableFactories.map((factory) => (
+                  <label key={factory.key} className={selectedFactory === factory.key ? 'factory-option active' : 'factory-option'}>
+                    <input
+                      type="radio"
+                      value={factory.key}
+                      checked={selectedFactory === factory.key}
+                      onChange={(e) => setSelectedFactory(e.target.value)}
+                    />
+                    <div className="option-content">
+                      <span className="option-title">{factory.name}</span>
+                      <span className="option-desc">{formatAddress(factory.address)} • {factory.version}</span>
+                      <span className="option-desc-small">{factory.description}</span>
+                    </div>
+                  </label>
+                ))}
               </div>
 
-              {!useRandomSalt && (
-                <div className="salt-input">
-                  <input
-                    type="text"
-                    value={customSalt}
-                    onChange={(e) => setCustomSalt(e.target.value)}
-                    placeholder="输入salt值 (十六进制或十进制)"
-                    className="salt-text-input"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const randomSalt = generateRandomSalt();
-                      setCustomSalt(randomSalt);
-                      setMessage(`Random salt generated: ${randomSalt.substring(0, 10)}...`);
-                    }}
-                    className="random-salt-btn"
-                  >
-                    🎲 随机生成
-                  </button>
+              {/* Salt 配置 - 借鉴老版本完整功能 */}
+              <div className="salt-config">
+                <h4>🔑 Salt Configuration</h4>
+                <div className="salt-options">
+                  <label className="salt-option">
+                    <input
+                      type="radio"
+                      checked={!useRandomSalt}
+                      onChange={() => {
+                        setUseRandomSalt(false);
+                        setCustomSalt('0');
+                      }}
+                    />
+                    <span>Custom Salt</span>
+                  </label>
+                  <label className="salt-option">
+                    <input
+                      type="radio"
+                      checked={useRandomSalt}
+                      onChange={() => setUseRandomSalt(true)}
+                    />
+                    <span>Random Salt (每次生成新地址)</span>
+                  </label>
                 </div>
-              )}
 
-              {/* 显示当前salt值 */}
-              <div className="current-salt-display">
-                <span className="salt-label">当前Salt:</span>
-                <code className="salt-value">
-                  {useRandomSalt ? '随机生成 (每次计算时生成新值)' : normalizeSalt(customSalt)}
-                </code>
+                {!useRandomSalt && (
+                  <div className="salt-input">
+                    <input
+                      type="text"
+                      value={customSalt}
+                      onChange={(e) => setCustomSalt(e.target.value)}
+                      placeholder="输入salt值 (十六进制或十进制)"
+                      className="salt-text-input"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const randomSalt = generateRandomSalt();
+                        setCustomSalt(randomSalt);
+                        setMessage(`Random salt generated: ${randomSalt.substring(0, 10)}...`);
+                      }}
+                      className="random-salt-btn"
+                    >
+                      🎲 随机生成
+                    </button>
+                  </div>
+                )}
+
+                {/* 显示当前salt值 */}
+                <div className="current-salt-display">
+                  <span className="salt-label">当前Salt:</span>
+                  <code className="salt-value">
+                    {useRandomSalt ? '随机生成 (每次计算时生成新值)' : normalizeSalt(customSalt)}
+                  </code>
+                </div>
+              </div>
+
+              <div className="action-buttons">
+                <button type="button" onClick={calculateAddress} disabled={loading || !account} className="calc-btn">
+                  🔍 Calculate Address
+                </button>
+                <button type="button" onClick={compareFactories} disabled={loading || !account} className="compare-btn">
+                  🔄 Compare All Factories
+                </button>
+                <button type="button" onClick={validateAllFactories} disabled={loading} className="validate-btn">
+                  🔧 Validate Factory Addresses
+                </button>
               </div>
             </div>
+          )}
 
-            <button type="button" onClick={calculateAddress} disabled={loading || !account} className="calc-btn">
-              🔍 Calculate Address
-            </button>
-          </div>
-
-          {/* 地址预览 - 始终显示 */}
+          {/* 地址显示 - 始终显示 */}
           <div className="card">
             <h3>🎯 Predicted Smart Account Address</h3>
             {predictedAddress ? (
               <div className="address-info">
                 <p className="address-label">🔑 Your ERC-4337 Account:</p>
                 <p className="predicted-address">{predictedAddress}</p>
+                
+                {/* 账户信息显示 */}
+                {accountInfo && (
+                  <div className="account-details">
+                    <p className="deployment-status">
+                      Status: <span className={accountInfo.isDeployed ? 'deployed' : 'not-deployed'}>
+                        {accountInfo.isDeployed ? '✅ Deployed' : '⏳ Not Deployed'}
+                      </span>
+                    </p>
+                    <p>ETH Balance: <strong>{accountInfo.balance} ETH</strong></p>
+                    <p>EntryPoint Deposit: <strong>{entryPointDeposit} ETH</strong></p>
+                  </div>
+                )}
+
                 <div className="calculation-details">
                   <p className="salt-used">🧂 Salt Used: <code>{getCurrentSalt()}</code></p>
-                  <p className="factory-used">🏭 Factory: {selectedFactory} ({FACTORIES[selectedFactory].address.substring(0, 10)}...)</p>
+                  <p className="factory-used">🏭 Factory: {selectedFactory} ({formatAddress(availableFactories.find(f => f.key === selectedFactory)?.address || '')})</p>
                 </div>
+                
                 <p className="address-note">⚠️ This is NOT the factory contract address!</p>
                 <a
-                  href={`https://sepolia.etherscan.io/address/${predictedAddress}`}
+                  href={getExplorerUrl(predictedAddress, currentNetwork?.chainId)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="etherscan-link"
                 >
-                  📊 View Smart Account on Etherscan
+                  📊 View Smart Account on Explorer
                 </a>
                 <button
                   type="button"
@@ -554,7 +606,120 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
             )}
           </div>
 
-          {/* 转账功能 */}
+          {/* 工厂验证结果 */}
+          {showFactoryValidation && validationResults.length > 0 && (
+            <div className="card">
+              <h3>🔧 Factory Address Validation Results</h3>
+              <p>Testing known factory addresses on {currentNetwork?.name}:</p>
+              
+              <div className="validation-results">
+                {validationResults.map((result, index) => (
+                  <div key={index} className={`validation-item ${result.valid ? 'success' : 'error'}`}>
+                    <div className="factory-info">
+                      <h4>{result.name}</h4>
+                      <p className="address">{result.address}</p>
+                    </div>
+                    
+                    {result.valid ? (
+                      <div className="validation-success">
+                        <p className="status">✅ Valid Factory</p>
+                        <p className="details">Implementation: {formatAddress(result.implementation)}</p>
+                        <p className="details">Test Address: {formatAddress(result.testAddress)}</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // 使用这个有效的工厂地址更新配置
+                            console.log(`Using factory: ${result.name} at ${result.address}`);
+                            setMessage(`Using factory: ${result.name}`);
+                          }}
+                          className="use-factory-btn"
+                        >
+                          Use This Factory
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="validation-error">
+                        <p className="status">❌ Invalid</p>
+                        <p className="error-details">{result.error}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              {workingFactory && (
+                <div className="recommended-factory">
+                  <h4>🎯 Recommended Factory</h4>
+                  <p><strong>{workingFactory.name}</strong></p>
+                  <p><code>{workingFactory.address}</code></p>
+                </div>
+              )}
+              
+              <button 
+                type="button" 
+                onClick={() => setShowFactoryValidation(false)}
+                className="close-validation-btn"
+              >
+                Close Validation
+              </button>
+            </div>
+          )}
+
+          {/* 工厂比较结果 */}
+          {showFactoryComparison && factoryComparison.length > 0 && (
+            <div className="card">
+              <h3>🔄 Factory Address Comparison</h3>
+              <p>Different factories will generate different account addresses for the same owner and salt:</p>
+              
+              <div className="factory-comparison">
+                {factoryComparison.map((result, index) => (
+                  <div key={index} className={`comparison-item ${result.success ? 'success' : 'error'}`}>
+                    <div className="factory-info">
+                      <h4>{result.factoryName}</h4>
+                      <span className="factory-type">({result.factoryType})</span>
+                    </div>
+                    
+                    {result.success ? (
+                      <div className="address-result">
+                        <p className="address">{result.address}</p>
+                        <div className="address-actions">
+                          <a
+                            href={getExplorerUrl(result.address, currentNetwork?.chainId)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="explorer-link"
+                          >
+                            📊 Explorer
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedFactory(result.factoryType)}
+                            className={`select-factory-btn ${selectedFactory === result.factoryType ? 'selected' : ''}`}
+                          >
+                            {selectedFactory === result.factoryType ? '✅ Selected' : 'Select'}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="error-result">
+                        <p className="error-message">❌ {result.error}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              <button 
+                type="button" 
+                onClick={() => setShowFactoryComparison(false)}
+                className="close-comparison-btn"
+              >
+                Close Comparison
+              </button>
+            </div>
+          )}
+
+          {/* 转账功能 - 借鉴老版本 */}
           {predictedAddress && txHash && (
             <div className="card">
               <h3>💸 Fund New Account</h3>
@@ -610,17 +775,22 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
             <div className="card">
               <h3>✅ Transaction Result</h3>
               <a
-                href={`https://sepolia.etherscan.io/tx/${txHash}`}
+                href={getExplorerUrl(txHash, currentNetwork?.chainId, 'tx')}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="tx-link"
               >
-                🔗 View Transaction on Etherscan
+                🔗 View Transaction on Explorer
               </a>
             </div>
           )}
+
+          {/* 状态消息 */}
+          {message && <div className="message success">{message}</div>}
+          {error && <div className="message error">{error}</div>}
         </div>
 
+        {/* 右侧列 - 已创建账户列表 */}
         <div className="collection-column">
           <h2 className="collection-header">📋 Created Accounts</h2>
 
@@ -631,27 +801,27 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
                 createdAccounts.map((acc, index) => (
                   <div key={`account-${acc.address}-${index}`} className="account-item">
                     <div className="account-info">
-                      <p className="account-address">
-                        {acc.address}
-                      </p>
+                      <p className="account-address">{acc.address}</p>
                       <p className="account-details">
-                        {acc.factoryName} • Salt: {acc.salt?.substring(0, 10)}... • {new Date(acc.createdAt).toLocaleDateString()}
+                        {acc.factoryName} • Salt: {formatAddress(acc.salt)} • {new Date(acc.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="account-actions">
                       <a
-                        href={`https://sepolia.etherscan.io/address/${acc.address}`}
+                        href={getExplorerUrl(acc.address, currentNetwork?.chainId)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="action-link"
+                        title="View Account"
                       >
                         📊
                       </a>
                       <a
-                        href={`https://sepolia.etherscan.io/tx/${acc.txHash}`}
+                        href={getExplorerUrl(acc.txHash, currentNetwork?.chainId, 'tx')}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="action-link"
+                        title="View Creation Transaction"
                       >
                         🔗
                       </a>
@@ -670,19 +840,20 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
         <div className="footer-content">
           <div className="footer-section">
             <h4>🏭 Factory Contracts (For Reference)</h4>
-            <p>Simple Factory: <code>{FACTORIES.simple_v06.address.substring(0, 10)}...</code></p>
-            <p>Alchemy Factory: <code>{FACTORIES.alchemy_light.address.substring(0, 10)}...</code></p>
+            {availableFactories.slice(0, 2).map(factory => (
+              <p key={factory.key}>{factory.name}: <code>{formatAddress(factory.address)}</code></p>
+            ))}
             <p className="factory-note">💡 These are factory contracts, not your smart accounts!</p>
           </div>
           <div className="footer-section">
             <h4>🔗 Network</h4>
-            <p>Ethereum Sepolia Testnet</p>
+            <p>{currentNetwork?.name || 'Unknown Network'}</p>
             <p>ERC-4337 Compatible</p>
           </div>
           <div className="footer-section">
             <h4>ℹ️ Info</h4>
             <p>Account Creation Tool</p>
-            <p>Version: 1.0</p>
+            <p>Version: 2.0 (Multi-Factory)</p>
           </div>
         </div>
       </footer>

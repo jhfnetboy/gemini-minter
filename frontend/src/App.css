@@ -1035,6 +1035,268 @@ button:disabled {
     font-style: italic;
 }
 
+/* Multi-factory support styles */
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.action-buttons .calc-btn,
+.action-buttons .compare-btn,
+.action-buttons .validate-btn {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    border: none;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.compare-btn {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+
+.compare-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3);
+}
+
+.validate-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+}
+
+.validate-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.compare-btn:disabled,
+.validate-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+/* Factory validation styles */
+.validation-results {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.validation-item {
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    transition: all 0.2s;
+}
+
+.validation-item.success {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.validation-item.error {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.validation-success .status,
+.validation-error .status {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.validation-success .details {
+    font-size: 0.875rem;
+    color: var(--text-light);
+    margin: 0.25rem 0;
+}
+
+.validation-error .error-details {
+    font-size: 0.875rem;
+    color: #ef4444;
+    margin: 0.25rem 0;
+}
+
+.use-factory-btn {
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.use-factory-btn:hover {
+    background: #059669;
+}
+
+.recommended-factory {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid #10b981;
+    border-radius: 6px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.recommended-factory h4 {
+    color: #10b981;
+    margin: 0 0 0.5rem 0;
+}
+
+.recommended-factory code {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 0.25rem 0.5rem;
+    border-radius: 3px;
+    font-size: 0.875rem;
+}
+
+.close-validation-btn {
+    background: #6b7280;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 1rem;
+}
+
+.close-validation-btn:hover {
+    background: #4b5563;
+}
+
+/* Factory comparison styles */
+.factory-comparison {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.comparison-item {
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    transition: all 0.2s;
+}
+
+.comparison-item.success {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.comparison-item.error {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.factory-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.factory-info h4 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.factory-type {
+    background: var(--primary-color);
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.address-result .address {
+    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 0.5rem;
+    border-radius: 4px;
+    margin: 0.5rem 0;
+    word-break: break-all;
+}
+
+.address-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.explorer-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.explorer-link:hover {
+    text-decoration: underline;
+}
+
+.select-factory-btn {
+    padding: 0.4rem 0.8rem;
+    border: 1px solid var(--primary-color);
+    background: white;
+    color: var(--primary-color);
+    border-radius: 4px;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.select-factory-btn.selected {
+    background: var(--primary-color);
+    color: white;
+}
+
+.select-factory-btn:hover:not(.selected) {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.error-result .error-message {
+    color: #ef4444;
+    font-size: 0.875rem;
+    margin: 0.5rem 0;
+}
+
+.close-comparison-btn {
+    background: #6b7280;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 1rem;
+}
+
+.close-comparison-btn:hover {
+    background: #4b5563;
+}
+
+/* Deployment status styles */
+.deployed {
+    color: #10b981;
+    font-weight: 500;
+}
+
+.not-deployed {
+    color: #f59e0b;
+    font-weight: 500;
+}
+
 .calculation-details {
     background: rgba(0, 0, 0, 0.03);
     border-radius: 6px;
