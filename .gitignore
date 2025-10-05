@@ -24,3 +24,4 @@ pnpm-debug.log*
 contracts/lib/openzeppelin-contracts/
 contracts/lib/account-abstraction/
 .vercel
+contracts/.env
