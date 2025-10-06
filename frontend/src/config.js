@@ -1,6 +1,5 @@
 import MyNFT_ABI from "./abis/MyNFT.json";
 import MySBT_ABI from "./abis/MySBT.json";
-import PNTs_ABI from "./abis/PNTs.json";
 import GasToken_ABI from "./abis/GasToken.json";
 
 // --- CONFIGURATION ---
