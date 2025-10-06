@@ -42,6 +42,31 @@ function App() {
     });
   }, []);
 
+  // Debug: Check network when provider changes
+  useEffect(() => {
+    const checkNetwork = async () => {
+      if (provider) {
+        const network = await provider.getNetwork();
+        console.log("🌐 [DEBUG] Connected Network:", {
+          name: network.name,
+          chainId: network.chainId.toString(),
+          expectedChainId: "11155111 (Sepolia)",
+        });
+        if (network.chainId.toString() !== "11155111") {
+          console.error(
+            "❌ [DEBUG] Wrong network! Please switch to Sepolia testnet",
+          );
+          setError(
+            "⚠️ Wrong network! Please switch MetaMask to Sepolia testnet",
+          );
+        } else {
+          console.log("✅ [DEBUG] Correct network (Sepolia)");
+        }
+      }
+    };
+    checkNetwork();
+  }, [provider]);
+
   const connectWallet = async () => {
     // Check if MetaMask is installed
     if (typeof window.ethereum === "undefined") {
