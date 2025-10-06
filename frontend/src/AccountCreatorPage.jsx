@@ -1,19 +1,20 @@
-import { useState, useEffect, useCallback } from 'react';
-import { ethers } from 'ethers';
-import { config } from './config';
-import { 
-  AA_NETWORKS, 
-  getNetworkConfig, 
-  getFactoryConfig, 
+import { useState, useEffect, useCallback } from "react";
+import { ethers } from "ethers";
+import { config } from "./config";
+import {
+  AA_NETWORKS,
+  getNetworkConfig,
+  getFactoryConfig,
   getSupportedNetworks,
   validateNetworkConfig,
-  ENTRYPOINT_INFO 
-} from './config/aa-config.js';
+  ENTRYPOINT_INFO,
+} from "./config/aa-config.js";
 
 // Use appropriate backend URL based on environment (same as NFT minter)
-const backendUrl = window.location.hostname === 'localhost' 
-    ? 'http://localhost:3001'  // Development: use local Express backend
-    : '';  // Production: use same domain (Vercel API routes)
+const backendUrl =
+  window.location.hostname === "localhost"
+    ? "http://localhost:3001" // Development: use local Express backend
+    : ""; // Production: use same domain (Vercel API routes)
 
 // Local utility functions
 function generateRandomSalt() {
@@ -25,15 +26,15 @@ function normalizeSalt(salt) {
 }
 
 function formatAddress(address) {
-  if (!address || typeof address !== 'string') return '';
+  if (!address || typeof address !== "string") return "";
   return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
 }
 
-function getExplorerUrl(address, chainId, type = 'address') {
+function getExplorerUrl(address, chainId, type = "address") {
   const network = getNetworkConfig(chainId);
-  if (!network) return '#';
-  
-  if (type === 'tx') {
+  if (!network) return "#";
+
+  if (type === "tx") {
     return `${network.blockExplorer}/tx/${address}`;
   } else {
     return `${network.blockExplorer}/address/${address}`;
@@ -43,54 +44,54 @@ function getExplorerUrl(address, chainId, type = 'address') {
 function getAvailableFactories(chainId) {
   const network = getNetworkConfig(chainId);
   if (!network || !network.factories) return [];
-  
+
   return Object.entries(network.factories).map(([key, factory]) => ({
     key,
-    ...factory
+    ...factory,
   }));
 }
-import './App.css';
+import "./App.css";
 
 // PNTs合约ABI (保持不变)
 const PNTS_ABI = [
   "function balanceOf(address) view returns (uint256)",
-  "function transfer(address, uint256) returns (bool)"
+  "function transfer(address, uint256) returns (bool)",
 ];
 
 export default function AccountCreatorPage({ account, provider, onBack }) {
   // 网络相关状态
   const [currentNetwork, setCurrentNetwork] = useState(null);
   const [selectedNetwork, setSelectedNetwork] = useState(11155111); // 默认Sepolia
-  const [selectedFactory, setSelectedFactory] = useState('simple');
-  
+  const [selectedFactory, setSelectedFactory] = useState("simple");
+
   // 地址和账户状态
-  const [predictedAddress, setPredictedAddress] = useState('');
+  const [predictedAddress, setPredictedAddress] = useState("");
   const [accountInfo, setAccountInfo] = useState(null);
-  const [entryPointDeposit, setEntryPointDeposit] = useState('0');
-  
+  const [entryPointDeposit, setEntryPointDeposit] = useState("0");
+
   // UI状态
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
-  const [txHash, setTxHash] = useState('');
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [txHash, setTxHash] = useState("");
 
   // Salt 相关状态 - 借鉴老版本完整功能
-  const [customSalt, setCustomSalt] = useState('0');
+  const [customSalt, setCustomSalt] = useState("0");
   const [useRandomSalt, setUseRandomSalt] = useState(false);
 
   // 转账相关状态 - 借鉴老版本
-  const [pntsAmount, setPntsAmount] = useState('100');
-  const [ethAmount, setEthAmount] = useState('0.01');
-  const [pntsBalance, setPntsBalance] = useState('0');
-  const [ethBalance, setEthBalance] = useState('0');
+  const [pntsAmount, setPntsAmount] = useState("100");
+  const [ethAmount, setEthAmount] = useState("0.01");
+  const [pntsBalance, setPntsBalance] = useState("0");
+  const [ethBalance, setEthBalance] = useState("0");
 
   // 已创建账户列表 - 借鉴老版本
   const [createdAccounts, setCreatedAccounts] = useState([]);
-  
+
   // 工厂比较功能
   const [showFactoryComparison, setShowFactoryComparison] = useState(false);
   const [factoryComparison, setFactoryComparison] = useState([]);
-  
+
   // 工厂验证功能
   const [showFactoryValidation, setShowFactoryValidation] = useState(false);
   const [validationResults, setValidationResults] = useState([]);
@@ -105,16 +106,18 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
         const network = await provider.getNetwork();
         const chainId = Number(network.chainId);
         const networkConfig = getNetworkConfig(chainId);
-        
+
         if (networkConfig) {
           setCurrentNetwork(networkConfig);
           setSelectedNetwork(chainId);
         } else {
-          setError(`Unsupported network: ${chainId}. Please switch to Sepolia, OP Sepolia, Optimism, or Ethereum Mainnet.`);
+          setError(
+            `Unsupported network: ${chainId}. Please switch to Sepolia, OP Sepolia, Optimism, or Ethereum Mainnet.`,
+          );
         }
       } catch (err) {
-        console.error('Failed to detect network:', err);
-        setError('Failed to detect network');
+        console.error("Failed to detect network:", err);
+        setError("Failed to detect network");
       }
     }
 
@@ -126,28 +129,51 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
     if (!account || !provider) return;
 
     try {
+      console.log("🔍 [DEBUG] Fetching balances...");
+      console.log("  Account:", account);
+      console.log("  PNT Contract Address:", config.addresses.pnts);
+      console.log("  Provider:", provider);
+
       // 获取PNTs余额
-      const pntsContract = new ethers.Contract(config.addresses.pnts, PNTS_ABI, provider);
+      const pntsContract = new ethers.Contract(
+        config.addresses.pnts,
+        PNTS_ABI,
+        provider,
+      );
+      console.log("  PNT Contract created:", pntsContract.target);
+
       const pntsBal = await pntsContract.balanceOf(account);
-      setPntsBalance(ethers.formatUnits(pntsBal, 18));
+      console.log("  Raw PNT Balance (wei):", pntsBal.toString());
+
+      const formattedBalance = ethers.formatUnits(pntsBal, 18);
+      console.log("  Formatted PNT Balance:", formattedBalance);
+      setPntsBalance(formattedBalance);
 
       // 获取ETH余额
       const ethBal = await provider.getBalance(account);
+      console.log("  ETH Balance:", ethers.formatEther(ethBal));
       setEthBalance(ethers.formatEther(ethBal));
+
+      console.log("✅ [DEBUG] Balances fetched successfully");
     } catch (err) {
-      console.error('Failed to fetch balances:', err);
+      console.error("❌ [DEBUG] Failed to fetch balances:", err);
+      console.error("  Error details:", {
+        message: err.message,
+        code: err.code,
+        data: err.data,
+      });
     }
   }, [account, provider]);
 
   // 加载已创建账户 - 借鉴老版本
   const loadCreatedAccounts = useCallback(() => {
     try {
-      const saved = localStorage.getItem('createdAccounts');
+      const saved = localStorage.getItem("createdAccounts");
       if (saved) {
         setCreatedAccounts(JSON.parse(saved));
       }
     } catch (err) {
-      console.error('Failed to load created accounts:', err);
+      console.error("Failed to load created accounts:", err);
     }
   }, []);
 
@@ -162,7 +188,7 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
   const saveCreatedAccount = (accountData) => {
     const updated = [...createdAccounts, accountData];
     setCreatedAccounts(updated);
-    localStorage.setItem('createdAccounts', JSON.stringify(updated));
+    localStorage.setItem("createdAccounts", JSON.stringify(updated));
   };
 
   // Salt管理功能 - 借鉴老版本完整实现
@@ -185,67 +211,71 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
   // 地址计算功能 - 整合新版本多工厂支持
   const calculateAddress = async () => {
     if (!account || !provider || !currentNetwork) {
-      setError('Please connect wallet and ensure network is supported');
+      setError("Please connect wallet and ensure network is supported");
       return;
     }
 
     try {
       setLoading(true);
-      setError('');
-      
+      setError("");
+
       // 验证网络和工厂配置
-      const validation = validateNetworkConfig(currentNetwork.chainId, selectedFactory);
+      const validation = validateNetworkConfig(
+        currentNetwork.chainId,
+        selectedFactory,
+      );
       if (!validation.isValid) {
         setError(validation.error);
         return;
       }
 
       const salt = getCurrentSalt();
-      console.log('=== Address Calculation ===');
-      console.log('Network:', currentNetwork.name);
-      console.log('Factory:', validation.factory.name);
-      console.log('Owner:', account);
-      console.log('Salt:', salt);
+      console.log("=== Address Calculation ===");
+      console.log("Network:", currentNetwork.name);
+      console.log("Factory:", validation.factory.name);
+      console.log("Owner:", account);
+      console.log("Salt:", salt);
 
       // 使用backend API计算地址 (完全按照NFT minter模式)
       const response = await fetch(`${backendUrl}/calculateAccountAddress`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           owner: account,
           salt: salt,
           factoryAddress: validation.factory.address,
-          factoryType: validation.factory.type || 'simple'
+          factoryType: validation.factory.type || "simple",
         }),
       });
-      
+
       // 检查响应状态和内容类型
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('API Error Response:', errorText);
+        console.error("API Error Response:", errorText);
         throw new Error(`API Error (${response.status}): ${errorText}`);
       }
-      
+
       // 检查是否为JSON响应
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
         const responseText = await response.text();
-        console.error('Non-JSON Response:', responseText);
-        throw new Error('Server returned non-JSON response');
+        console.error("Non-JSON Response:", responseText);
+        throw new Error("Server returned non-JSON response");
       }
-      
+
       const data = await response.json();
-      
+
       const { predictedAddress } = data;
       setPredictedAddress(predictedAddress);
-      setMessage(`✅ Address calculated successfully: ${predictedAddress.substring(0,10)}...`);
+      setMessage(
+        `✅ Address calculated successfully: ${predictedAddress.substring(0, 10)}...`,
+      );
 
-      console.log('=== Backend Calculation Result ===');
-      console.log('Predicted Address:', predictedAddress);
-
+      console.log("=== Backend Calculation Result ===");
+      console.log("Predicted Address:", predictedAddress);
     } catch (err) {
-      setError('Address calculation failed: ' + err.message);
-      console.error('Address calculation error:', err);
+      setError("Address calculation failed: " + err.message);
+      console.error("Address calculation error:", err);
     } finally {
       setLoading(false);
     }
@@ -254,39 +284,43 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
   // 测试所有工厂地址
   const testAllFactories = async () => {
     if (!account || !provider || !currentNetwork) {
-      setError('Please connect wallet and ensure network is supported');
+      setError("Please connect wallet and ensure network is supported");
       return;
     }
 
     try {
       setLoading(true);
-      setError('');
-      setMessage('Testing all factory addresses...');
+      setError("");
+      setMessage("Testing all factory addresses...");
 
       const salt = getCurrentSalt();
-      const results = await testFactoryAddresses(account, salt, currentNetwork.chainId, provider);
-      
-      console.log('=== Factory Test Results ===');
+      const results = await testFactoryAddresses(
+        account,
+        salt,
+        currentNetwork.chainId,
+        provider,
+      );
+
+      console.log("=== Factory Test Results ===");
       console.log(results);
-      
+
       // Display results
-      let resultMessage = 'Factory Test Results:\n\n';
+      let resultMessage = "Factory Test Results:\n\n";
       for (const [name, result] of Object.entries(results)) {
         if (result.success) {
           resultMessage += `✅ ${name}:\n`;
           resultMessage += `  Address: ${result.address}\n`;
           resultMessage += `  Predicted: ${result.predictedAddress}\n`;
-          resultMessage += `  Same as factory: ${result.isSameAsFactory ? '❌ YES (Problem!)' : '✅ NO (Good)'}\n\n`;
+          resultMessage += `  Same as factory: ${result.isSameAsFactory ? "❌ YES (Problem!)" : "✅ NO (Good)"}\n\n`;
         } else {
           resultMessage += `❌ ${name}: ${result.error}\n\n`;
         }
       }
-      
+
       setMessage(resultMessage);
-      
     } catch (err) {
-      setError('Factory testing failed: ' + err.message);
-      console.error('Factory testing error:', err);
+      setError("Factory testing failed: " + err.message);
+      console.error("Factory testing error:", err);
     } finally {
       setLoading(false);
     }
@@ -295,55 +329,58 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
   // 比较不同工厂的地址
   const compareFactories = async () => {
     if (!account || !provider || !currentNetwork) {
-      setError('Please connect wallet and ensure network is supported');
+      setError("Please connect wallet and ensure network is supported");
       return;
     }
 
     try {
       setLoading(true);
-      setError('');
-      
+      setError("");
+
       const salt = getCurrentSalt();
-      console.log('=== Factory Comparison ===');
-      console.log('Owner:', account);
-      console.log('Salt:', salt);
-      
+      console.log("=== Factory Comparison ===");
+      console.log("Owner:", account);
+      console.log("Salt:", salt);
+
       const comparison = await compareFactoryAddresses(
         account,
         salt,
         currentNetwork.chainId,
-        provider
+        provider,
       );
-      
+
       setFactoryComparison(comparison);
       setShowFactoryComparison(true);
-      
-      console.log('Factory Comparison Results:', comparison);
-      
+
+      console.log("Factory Comparison Results:", comparison);
     } catch (err) {
-      setError('Factory comparison failed: ' + err.message);
-      console.error('Factory comparison error:', err);
+      setError("Factory comparison failed: " + err.message);
+      console.error("Factory comparison error:", err);
     } finally {
       setLoading(false);
     }
   };
 
-
   // 创建账户功能 - 借鉴老版本但增强错误处理
   const createAccount = async () => {
     if (!predictedAddress || !currentNetwork) {
-      setError('Please calculate address first');
+      setError("Please calculate address first");
       return;
     }
 
     try {
       setLoading(true);
-      setError('');
-      setMessage('Creating account...');
+      setError("");
+      setMessage("Creating account...");
 
-      const factoryConfig = getFactoryConfig(currentNetwork.chainId, selectedFactory);
+      const factoryConfig = getFactoryConfig(
+        currentNetwork.chainId,
+        selectedFactory,
+      );
       if (!factoryConfig) {
-        setError(`Factory ${selectedFactory} not configured for ${currentNetwork.name}`);
+        setError(
+          `Factory ${selectedFactory} not configured for ${currentNetwork.name}`,
+        );
         return;
       }
 
@@ -351,13 +388,13 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
       const factoryContract = new ethers.Contract(
         factoryConfig.address,
         factoryConfig.abi,
-        signer
+        signer,
       );
 
       // 检查账户是否已存在
       const code = await provider.getCode(predictedAddress);
-      if (code !== '0x') {
-        setMessage('Account already exists!');
+      if (code !== "0x") {
+        setMessage("Account already exists!");
         return;
       }
 
@@ -365,14 +402,14 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
       const salt = getCurrentSalt();
       const saltBigInt = ethers.getBigInt(salt);
 
-      console.log('Creating account with:', {
+      console.log("Creating account with:", {
         owner: account,
         salt: salt,
-        factory: factoryConfig.address
+        factory: factoryConfig.address,
       });
 
       const tx = await factoryContract.createAccount(account, saltBigInt, {
-        gasLimit: 1000000
+        gasLimit: 1000000,
       });
 
       setTxHash(tx.hash);
@@ -381,10 +418,12 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
       // 等待交易确认
       const receipt = await tx.wait();
       if (receipt.status === 0) {
-        throw new Error('Transaction failed');
+        throw new Error("Transaction failed");
       }
 
-      setMessage(`✅ Account created successfully! Address: ${predictedAddress}`);
+      setMessage(
+        `✅ Account created successfully! Address: ${predictedAddress}`,
+      );
 
       // 保存创建的账户
       const accountData = {
@@ -395,13 +434,12 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
         createdAt: new Date().toISOString(),
         txHash: tx.hash,
         owner: account,
-        network: currentNetwork.shortName || currentNetwork.name.toLowerCase()
+        network: currentNetwork.shortName || currentNetwork.name.toLowerCase(),
       };
       saveCreatedAccount(accountData);
-
     } catch (err) {
-      setError('Account creation failed: ' + err.message);
-      console.error('Account creation error:', err);
+      setError("Account creation failed: " + err.message);
+      console.error("Account creation error:", err);
     } finally {
       setLoading(false);
     }
@@ -410,20 +448,24 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
   // 转账功能 - 借鉴老版本完整实现
   const transferToAccount = async (isPNTs = true) => {
     if (!account || !predictedAddress || !provider) {
-      setError('Please create account first');
+      setError("Please create account first");
       return;
     }
 
     try {
       setLoading(true);
-      setError('');
-      setMessage(isPNTs ? 'Transferring PNTs...' : 'Transferring ETH...');
+      setError("");
+      setMessage(isPNTs ? "Transferring PNTs..." : "Transferring ETH...");
 
       const signer = await provider.getSigner();
 
       if (isPNTs) {
         // 转账PNTs
-        const pntsContract = new ethers.Contract(config.addresses.pnts, PNTS_ABI, signer);
+        const pntsContract = new ethers.Contract(
+          config.addresses.pnts,
+          PNTS_ABI,
+          signer,
+        );
         const amount = ethers.parseUnits(pntsAmount, 18);
         const tx = await pntsContract.transfer(predictedAddress, amount);
         await tx.wait();
@@ -433,7 +475,7 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
         const amount = ethers.parseEther(ethAmount);
         const tx = await signer.sendTransaction({
           to: predictedAddress,
-          value: amount
+          value: amount,
         });
         await tx.wait();
         setMessage(`✅ Transferred ${ethAmount} ETH to account`);
@@ -441,7 +483,6 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
 
       // 刷新余额
       await fetchBalances();
-
     } catch (err) {
       setError(`Transfer failed: ${err.message}`);
     } finally {
@@ -450,7 +491,9 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
   };
 
   // 获取当前网络支持的工厂
-  const availableFactories = currentNetwork ? getAvailableFactories(currentNetwork.chainId) : [];
+  const availableFactories = currentNetwork
+    ? getAvailableFactories(currentNetwork.chainId)
+    : [];
 
   return (
     <div className="App">
@@ -458,10 +501,15 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
         <div>
           <h1>🚀 ERC-4337 Account Creator</h1>
           <div className="header-right">
-            <button type="button" onClick={onBack} className="back-btn">← Back to Main</button>
+            <button type="button" onClick={onBack} className="back-btn">
+              ← Back to Main
+            </button>
             {account && (
               <div className="account-info">
-                <p>Connected: <span className="address">{formatAddress(account)}</span></p>
+                <p>
+                  Connected:{" "}
+                  <span className="address">{formatAddress(account)}</span>
+                </p>
               </div>
             )}
           </div>
@@ -475,10 +523,20 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
             <div className="card">
               <h3>🌐 Network Information</h3>
               <div className="network-info">
-                <p><strong>Network:</strong> {currentNetwork.name}</p>
-                <p><strong>Chain ID:</strong> {currentNetwork.chainId}</p>
-                <p><strong>EntryPoint:</strong> <code>{formatAddress(currentNetwork.entryPoint)}</code></p>
-                <p><strong>Supported Factories:</strong> {availableFactories.length}</p>
+                <p>
+                  <strong>Network:</strong> {currentNetwork.name}
+                </p>
+                <p>
+                  <strong>Chain ID:</strong> {currentNetwork.chainId}
+                </p>
+                <p>
+                  <strong>EntryPoint:</strong>{" "}
+                  <code>{formatAddress(currentNetwork.entryPoint)}</code>
+                </p>
+                <p>
+                  <strong>Supported Factories:</strong>{" "}
+                  {availableFactories.length}
+                </p>
               </div>
             </div>
           )}
@@ -487,8 +545,12 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
           <div className="card">
             <h3>💰 Your Balances</h3>
             <div className="balance-info">
-              <p>PNTs: <strong>{pntsBalance}</strong></p>
-              <p>ETH: <strong>{ethBalance}</strong></p>
+              <p>
+                PNTs: <strong>{pntsBalance}</strong>
+              </p>
+              <p>
+                ETH: <strong>{ethBalance}</strong>
+              </p>
             </div>
           </div>
 
@@ -498,7 +560,14 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
               <h3>🏭 Choose Factory</h3>
               <div className="factory-options">
                 {availableFactories.map((factory) => (
-                  <label key={factory.key} className={selectedFactory === factory.key ? 'factory-option active' : 'factory-option'}>
+                  <label
+                    key={factory.key}
+                    className={
+                      selectedFactory === factory.key
+                        ? "factory-option active"
+                        : "factory-option"
+                    }
+                  >
                     <input
                       type="radio"
                       value={factory.key}
@@ -507,8 +576,12 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
                     />
                     <div className="option-content">
                       <span className="option-title">{factory.name}</span>
-                      <span className="option-desc">{formatAddress(factory.address)} • {factory.version}</span>
-                      <span className="option-desc-small">{factory.description}</span>
+                      <span className="option-desc">
+                        {formatAddress(factory.address)} • {factory.version}
+                      </span>
+                      <span className="option-desc-small">
+                        {factory.description}
+                      </span>
                     </div>
                   </label>
                 ))}
@@ -524,7 +597,7 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
                       checked={!useRandomSalt}
                       onChange={() => {
                         setUseRandomSalt(false);
-                        setCustomSalt('0');
+                        setCustomSalt("0");
                       }}
                     />
                     <span>Custom Salt</span>
@@ -553,7 +626,9 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
                       onClick={() => {
                         const randomSalt = generateRandomSalt();
                         setCustomSalt(randomSalt);
-                        setMessage(`Random salt generated: ${randomSalt.toString().substring(0, 10)}...`);
+                        setMessage(
+                          `Random salt generated: ${randomSalt.toString().substring(0, 10)}...`,
+                        );
                       }}
                       className="random-salt-btn"
                     >
@@ -566,13 +641,20 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
                 <div className="current-salt-display">
                   <span className="salt-label">当前Salt:</span>
                   <code className="salt-value">
-                    {useRandomSalt ? '随机生成 (每次计算时生成新值)' : normalizeSalt(customSalt)}
+                    {useRandomSalt
+                      ? "随机生成 (每次计算时生成新值)"
+                      : normalizeSalt(customSalt)}
                   </code>
                 </div>
               </div>
 
               <div className="action-buttons">
-                <button type="button" onClick={calculateAddress} disabled={loading || !account} className="calc-btn">
+                <button
+                  type="button"
+                  onClick={calculateAddress}
+                  disabled={loading || !account}
+                  className="calc-btn"
+                >
                   🔍 Calculate Address
                 </button>
               </div>
@@ -586,28 +668,54 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
               <div className="address-info">
                 <p className="address-label">🔑 Your ERC-4337 Account:</p>
                 <p className="predicted-address">{predictedAddress}</p>
-                
+
                 {/* 账户信息显示 */}
                 {accountInfo && (
                   <div className="account-details">
                     <p className="deployment-status">
-                      Status: <span className={accountInfo.isDeployed ? 'deployed' : 'not-deployed'}>
-                        {accountInfo.isDeployed ? '✅ Deployed' : '⏳ Not Deployed'}
+                      Status:{" "}
+                      <span
+                        className={
+                          accountInfo.isDeployed ? "deployed" : "not-deployed"
+                        }
+                      >
+                        {accountInfo.isDeployed
+                          ? "✅ Deployed"
+                          : "⏳ Not Deployed"}
                       </span>
                     </p>
-                    <p>ETH Balance: <strong>{accountInfo.balance} ETH</strong></p>
-                    <p>EntryPoint Deposit: <strong>{entryPointDeposit} ETH</strong></p>
+                    <p>
+                      ETH Balance: <strong>{accountInfo.balance} ETH</strong>
+                    </p>
+                    <p>
+                      EntryPoint Deposit:{" "}
+                      <strong>{entryPointDeposit} ETH</strong>
+                    </p>
                   </div>
                 )}
 
                 <div className="calculation-details">
-                  <p className="salt-used">🧂 Salt Used: <code>{getCurrentSalt()}</code></p>
-                  <p className="factory-used">🏭 Factory: {selectedFactory} ({formatAddress(availableFactories.find(f => f.key === selectedFactory)?.address || '')})</p>
+                  <p className="salt-used">
+                    🧂 Salt Used: <code>{getCurrentSalt()}</code>
+                  </p>
+                  <p className="factory-used">
+                    🏭 Factory: {selectedFactory} (
+                    {formatAddress(
+                      availableFactories.find((f) => f.key === selectedFactory)
+                        ?.address || "",
+                    )}
+                    )
+                  </p>
                 </div>
-                
-                <p className="address-note">⚠️ This is NOT the factory contract address!</p>
+
+                <p className="address-note">
+                  ⚠️ This is NOT the factory contract address!
+                </p>
                 <a
-                  href={getExplorerUrl(predictedAddress, currentNetwork?.chainId)}
+                  href={getExplorerUrl(
+                    predictedAddress,
+                    currentNetwork?.chainId,
+                  )}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="etherscan-link"
@@ -620,16 +728,19 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
                   disabled={loading}
                   className="create-account-btn"
                 >
-                  {loading ? '⏳ Creating...' : '🚀 Create Account'}
+                  {loading ? "⏳ Creating..." : "🚀 Create Account"}
                 </button>
               </div>
             ) : (
               <div className="address-placeholder">
                 <p className="placeholder-text">
-                  👆 Click "🔍 Calculate Address" to generate your smart account address
+                  👆 Click "🔍 Calculate Address" to generate your smart account
+                  address
                 </p>
                 <div className="placeholder-address">
-                  <span className="placeholder-label">Address will appear here...</span>
+                  <span className="placeholder-label">
+                    Address will appear here...
+                  </span>
                 </div>
               </div>
             )}
@@ -640,25 +751,34 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
             <div className="card">
               <h3>🔧 Factory Address Validation Results</h3>
               <p>Testing known factory addresses on {currentNetwork?.name}:</p>
-              
+
               <div className="validation-results">
                 {validationResults.map((result, index) => (
-                  <div key={index} className={`validation-item ${result.valid ? 'success' : 'error'}`}>
+                  <div
+                    key={index}
+                    className={`validation-item ${result.valid ? "success" : "error"}`}
+                  >
                     <div className="factory-info">
                       <h4>{result.name}</h4>
                       <p className="address">{result.address}</p>
                     </div>
-                    
+
                     {result.valid ? (
                       <div className="validation-success">
                         <p className="status">✅ Valid Factory</p>
-                        <p className="details">Implementation: {formatAddress(result.implementation)}</p>
-                        <p className="details">Test Address: {formatAddress(result.testAddress)}</p>
+                        <p className="details">
+                          Implementation: {formatAddress(result.implementation)}
+                        </p>
+                        <p className="details">
+                          Test Address: {formatAddress(result.testAddress)}
+                        </p>
                         <button
                           type="button"
                           onClick={() => {
                             // 使用这个有效的工厂地址更新配置
-                            console.log(`Using factory: ${result.name} at ${result.address}`);
+                            console.log(
+                              `Using factory: ${result.name} at ${result.address}`,
+                            );
                             setMessage(`Using factory: ${result.name}`);
                           }}
                           className="use-factory-btn"
@@ -675,17 +795,21 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
                   </div>
                 ))}
               </div>
-              
+
               {workingFactory && (
                 <div className="recommended-factory">
                   <h4>🎯 Recommended Factory</h4>
-                  <p><strong>{workingFactory.name}</strong></p>
-                  <p><code>{workingFactory.address}</code></p>
+                  <p>
+                    <strong>{workingFactory.name}</strong>
+                  </p>
+                  <p>
+                    <code>{workingFactory.address}</code>
+                  </p>
                 </div>
               )}
-              
-              <button 
-                type="button" 
+
+              <button
+                type="button"
                 onClick={() => setShowFactoryValidation(false)}
                 className="close-validation-btn"
               >
@@ -698,22 +822,33 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
           {showFactoryComparison && factoryComparison.length > 0 && (
             <div className="card">
               <h3>🔄 Factory Address Comparison</h3>
-              <p>Different factories will generate different account addresses for the same owner and salt:</p>
-              
+              <p>
+                Different factories will generate different account addresses
+                for the same owner and salt:
+              </p>
+
               <div className="factory-comparison">
                 {factoryComparison.map((result, index) => (
-                  <div key={index} className={`comparison-item ${result.success ? 'success' : 'error'}`}>
+                  <div
+                    key={index}
+                    className={`comparison-item ${result.success ? "success" : "error"}`}
+                  >
                     <div className="factory-info">
                       <h4>{result.factoryName}</h4>
-                      <span className="factory-type">({result.factoryType})</span>
+                      <span className="factory-type">
+                        ({result.factoryType})
+                      </span>
                     </div>
-                    
+
                     {result.success ? (
                       <div className="address-result">
                         <p className="address">{result.address}</p>
                         <div className="address-actions">
                           <a
-                            href={getExplorerUrl(result.address, currentNetwork?.chainId)}
+                            href={getExplorerUrl(
+                              result.address,
+                              currentNetwork?.chainId,
+                            )}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="explorer-link"
@@ -722,10 +857,14 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
                           </a>
                           <button
                             type="button"
-                            onClick={() => setSelectedFactory(result.factoryType)}
-                            className={`select-factory-btn ${selectedFactory === result.factoryType ? 'selected' : ''}`}
+                            onClick={() =>
+                              setSelectedFactory(result.factoryType)
+                            }
+                            className={`select-factory-btn ${selectedFactory === result.factoryType ? "selected" : ""}`}
                           >
-                            {selectedFactory === result.factoryType ? '✅ Selected' : 'Select'}
+                            {selectedFactory === result.factoryType
+                              ? "✅ Selected"
+                              : "Select"}
                           </button>
                         </div>
                       </div>
@@ -737,9 +876,9 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
                   </div>
                 ))}
               </div>
-              
-              <button 
-                type="button" 
+
+              <button
+                type="button"
                 onClick={() => setShowFactoryComparison(false)}
                 className="close-comparison-btn"
               >
@@ -804,7 +943,7 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
             <div className="card">
               <h3>✅ Transaction Result</h3>
               <a
-                href={getExplorerUrl(txHash, currentNetwork?.chainId, 'tx')}
+                href={getExplorerUrl(txHash, currentNetwork?.chainId, "tx")}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="tx-link"
@@ -828,16 +967,23 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
             <div className="accounts-list">
               {createdAccounts.length > 0 ? (
                 createdAccounts.map((acc, index) => (
-                  <div key={`account-${acc.address}-${index}`} className="account-item">
+                  <div
+                    key={`account-${acc.address}-${index}`}
+                    className="account-item"
+                  >
                     <div className="account-info">
                       <p className="account-address">{acc.address}</p>
                       <p className="account-details">
-                        {acc.factoryName} • Salt: {acc.salt} • {new Date(acc.createdAt).toLocaleDateString()}
+                        {acc.factoryName} • Salt: {acc.salt} •{" "}
+                        {new Date(acc.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="account-actions">
                       <a
-                        href={getExplorerUrl(acc.address, currentNetwork?.chainId)}
+                        href={getExplorerUrl(
+                          acc.address,
+                          currentNetwork?.chainId,
+                        )}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="action-link"
@@ -846,7 +992,11 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
                         📊
                       </a>
                       <a
-                        href={getExplorerUrl(acc.txHash, currentNetwork?.chainId, 'tx')}
+                        href={getExplorerUrl(
+                          acc.txHash,
+                          currentNetwork?.chainId,
+                          "tx",
+                        )}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="action-link"
@@ -865,18 +1015,22 @@ export default function AccountCreatorPage({ account, provider, onBack }) {
         </div>
       </div>
 
-      <footer className='footer'>
+      <footer className="footer">
         <div className="footer-content">
           <div className="footer-section">
             <h4>🏭 Factory Contracts (For Reference)</h4>
-            {availableFactories.slice(0, 2).map(factory => (
-              <p key={factory.key}>{factory.name}: <code>{formatAddress(factory.address)}</code></p>
+            {availableFactories.slice(0, 2).map((factory) => (
+              <p key={factory.key}>
+                {factory.name}: <code>{formatAddress(factory.address)}</code>
+              </p>
             ))}
-            <p className="factory-note">💡 These are factory contracts, not your smart accounts!</p>
+            <p className="factory-note">
+              💡 These are factory contracts, not your smart accounts!
+            </p>
           </div>
           <div className="footer-section">
             <h4>🔗 Network</h4>
-            <p>{currentNetwork?.name || 'Unknown Network'}</p>
+            <p>{currentNetwork?.name || "Unknown Network"}</p>
             <p>ERC-4337 Compatible</p>
           </div>
           <div className="footer-section">
