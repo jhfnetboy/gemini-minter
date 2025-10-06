@@ -11,9 +11,10 @@ const addresses = {
   nft: "0xC9fB3Fe98442A23a0CA5884dC114989FF7b3d97a",
   sbt: "0xBfde68c232F2248114429DDD9a7c3Adbff74bD7f",
   // Old PNTS (simple ERC20): 0x3e7B771d4541eC85c8137e950598Ac97553a337a
-  // New PNTS (with Settlement pre-approval): 0xf2996D81b264d071f99FD13d76D15A9258f4cFa9
-  pnts: "0xf2996D81b264d071f99FD13d76D15A9258f4cFa9",
-  gasTokenFactory: "0xEb7F4a417690c8E3479928C5406770e3cdAA2E58",
+  // Old PNTS V2 (wrong Settlement): 0xf2996D81b264d071f99FD13d76D15A9258f4cFa9
+  // New PNTv2 (correct Settlement 0x6bbf...): 0x090e34709a592210158aa49a969e4a04e3a29ebd
+  pnts: "0x090e34709a592210158aa49a969e4a04e3a29ebd",
+  gasTokenFactory: "0x62556E7f516a6E3F723800C52aFa02e10c147583",
 };
 
 // --- ABIs ---
