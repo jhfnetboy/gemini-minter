@@ -1,0 +1,78 @@
+Compiling 1 files with Solc 0.8.28
+Solc 0.8.28 finished in 1.44s
+Compiler run successful!
+Script ran successfully.
+
+== Logs ==
+  GasTokenFactory deployed at: 0xEb7F4a417690c8E3479928C5406770e3cdAA2E58
+  PNT Token deployed at: 0xf2996D81b264d071f99FD13d76D15A9258f4cFa9
+  Settlement address: 0x5Df95ECe6a35F55CeA2c02Da15c0ef1F6B795B85
+  PNT Exchange Rate: 1000000000000000000
+  PNT Settlement: 0x5Df95ECe6a35F55CeA2c02Da15c0ef1F6B795B85
+  
+=== Deployment Summary ===
+  Factory: 0xEb7F4a417690c8E3479928C5406770e3cdAA2E58
+  PNT Token: 0xf2996D81b264d071f99FD13d76D15A9258f4cFa9
+  Please update .env with these addresses
+
+## Setting up 1 EVM.
+
+==========================
+
+Chain 11155111
+
+Estimated gas price: 0.001000174 gwei
+
+Estimated total gas used for script: 5889848
+
+Estimated amount required: 0.000005890872833552 ETH
+
+==========================
+
+
+==========================
+
+ONCHAIN EXECUTION COMPLETE & SUCCESSFUL.
+##
+Start verification for (2) contracts
+Start verifying contract `0xEb7F4a417690c8E3479928C5406770e3cdAA2E58` deployed on sepolia
+EVM version: cancun
+Compiler version: 0.8.28
+
+Submitting verification for [src/GasTokenFactory.sol:GasTokenFactory] 0xEb7F4a417690c8E3479928C5406770e3cdAA2E58.
+Submitted contract for verification:
+	Response: `OK`
+	GUID: `ieqbmj2e41nbn8wzwvdb4anlgnb2k5k5sdjuzyqjay6vz896wm`
+	URL: https://sepolia.etherscan.io/address/0xeb7f4a417690c8e3479928c5406770e3cdaa2e58
+Contract verification status:
+Response: `OK`
+Details: `Pass - Verified`
+Contract successfully verified
+Start verifying contract `0xf2996D81b264d071f99FD13d76D15A9258f4cFa9` deployed on sepolia
+EVM version: cancun
+Compiler version: 0.8.28
+Constructor args: 000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000005df95ece6a35f55cea2c02da15c0ef1f6b795b850000000000000000000000000000000000000000000000000de0b6b3a7640000000000000000000000000000000000000000000000000000000000000000000c506f696e747320546f6b656e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003504e540000000000000000000000000000000000000000000000000000000000
+
+Submitting verification for [src/GasToken.sol:GasToken] 0xf2996D81b264d071f99FD13d76D15A9258f4cFa9.
+Warning: Could not detect the deployment.; waiting 5 seconds before trying again (4 tries remaining)
+
+Submitting verification for [src/GasToken.sol:GasToken] 0xf2996D81b264d071f99FD13d76D15A9258f4cFa9.
+Warning: Could not detect the deployment.; waiting 5 seconds before trying again (3 tries remaining)
+
+Submitting verification for [src/GasToken.sol:GasToken] 0xf2996D81b264d071f99FD13d76D15A9258f4cFa9.
+Warning: Could not detect the deployment.; waiting 5 seconds before trying again (2 tries remaining)
+
+Submitting verification for [src/GasToken.sol:GasToken] 0xf2996D81b264d071f99FD13d76D15A9258f4cFa9.
+Warning: Could not detect the deployment.; waiting 5 seconds before trying again (1 tries remaining)
+
+Submitting verification for [src/GasToken.sol:GasToken] 0xf2996D81b264d071f99FD13d76D15A9258f4cFa9.
+Warning: Could not detect the deployment.; waiting 5 seconds before trying again (0 tries remaining)
+
+Submitting verification for [src/GasToken.sol:GasToken] 0xf2996D81b264d071f99FD13d76D15A9258f4cFa9.
+Error: Failed to verify contract: Could not detect the deployment.
+
+Transactions saved to: /Users/jason/Dev/mycelium/my-exploration/projects/gemini-minter/contracts/broadcast/DeployGasToken.s.sol/11155111/run-latest.json
+
+Sensitive values saved to: /Users/jason/Dev/mycelium/my-exploration/projects/gemini-minter/contracts/cache/DeployGasToken.s.sol/11155111/run-latest.json
+
+Error: Not all (1 / 2) contracts were verified!
