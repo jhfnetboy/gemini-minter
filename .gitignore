@@ -25,3 +25,4 @@ contracts/lib/openzeppelin-contracts/
 contracts/lib/account-abstraction/
 .vercel
 contracts/.env
+.env.production
